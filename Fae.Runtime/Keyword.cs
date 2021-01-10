@@ -10,6 +10,7 @@ namespace Fae.Runtime
         static Keyword()
         {
             DynamicRuntime.StructDefinitions.TryAdd(typeof(Keyword), new KeywordStructDefinition());
+            DynamicRuntime.StructDefinitions.TryAdd(typeof(FalseyKeyword), new FalseyKeywordStructDefinition());
         }
         
         [StructMember("keyword/namespace")]
@@ -27,13 +28,19 @@ namespace Fae.Runtime
         [StructMember("keyword/value")] 
         private Keyword Value => this;
 
-        private Keyword(string name)
+        public bool IsMeta { get; internal set; }
+        public bool IsFalsey { get; internal set; }
+
+        protected Keyword(string name)
         {
             var offset = name.IndexOf("/", StringComparison.Ordinal);
             _ns = name.Substring(0, offset);
             _name = name.Substring(offset + 1);
             _str = name;
             _hash = name.GetHashCode() ^ 0xBEEF;
+
+            IsMeta = _ns.StartsWith("meta.");
+            IsFalsey = _name.EndsWith("!");
         }
 
         private static readonly ConcurrentDictionary<string, Keyword> _registry = new();
@@ -43,7 +50,7 @@ namespace Fae.Runtime
             if (_registry.TryGetValue(name, out var found))
                 return found;
 
-            var kw = new Keyword(name);
+            var kw = name.EndsWith("!") ? new FalseyKeyword(name) : new Keyword(name);
             return _registry.TryAdd(name, kw) ? kw : _registry[name];
         }
 
@@ -72,6 +79,14 @@ namespace Fae.Runtime
         }
     }
 
+    public class FalseyKeyword : Keyword
+    {
+        public FalseyKeyword(string input) : base(input)
+        {
+            
+        }
+    }
+
 
 
     public static class KW
@@ -85,11 +100,13 @@ namespace Fae.Runtime
         public static Keyword EOL = Keyword.Intern("fae.list/end-of-list!");
         public static Keyword First = Keyword.Intern("fae.list/first");
         public static Keyword Next = Keyword.Intern("fae.list/next");
+        public static Keyword ELSE = Keyword.Intern("fae.conditional/branch");
+        public static Keyword Flag = Keyword.Intern("fae.flag/set");
     }
 
     internal class KeywordStructDefinition : IStructDefinition
     {
-        public (Keyword, Type)[] GetMembers()
+        public virtual (Keyword, Type)[] GetMembers()
         {
             return new[]
             {
@@ -100,7 +117,7 @@ namespace Fae.Runtime
             };
         }
 
-        public Expression MemberGetter(Expression self, Keyword memberName)
+        public virtual Expression MemberGetter(Expression self, Keyword memberName)
         {
             if (ReferenceEquals(memberName, KW.KeywordName))
             {
@@ -123,6 +140,26 @@ namespace Fae.Runtime
             }
 
             throw new InvalidOperationException();
+        }
+    }
+    
+    internal class FalseyKeywordStructDefinition : KeywordStructDefinition
+    {
+        public override (Keyword, Type)[] GetMembers()
+        {
+            return new[]
+            {
+                (KW.KeywordName, typeof(string)),
+                (KW.KeywordNamespace, typeof(string)),
+                (KW.KeywordString, typeof(string)),
+                (KW.KeywordValue, typeof(Keyword)),
+                (KW.ELSE, typeof(Keyword))
+            };
+        }
+
+        public override Expression MemberGetter(Expression self, Keyword memberName)
+        {
+            return ReferenceEquals(memberName, KW.ELSE) ? Expression.Constant(KW.Flag) : base.MemberGetter(self, memberName);
         }
     }
 }

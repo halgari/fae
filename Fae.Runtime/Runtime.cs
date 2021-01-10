@@ -5,6 +5,7 @@ using System.Dynamic;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Runtime.InteropServices;
 using BindingFlags = System.Reflection.BindingFlags;
 
 namespace Fae.Runtime
@@ -38,8 +39,23 @@ namespace Fae.Runtime
                 "Get" => ConstructGet(binder, args),
                 "New" => ConstructNew(binder, args),
                 "With" => ConstructWith(binder, args),
+                "IsTruthy" => ConstructIsTruthy(args),
                 _ => throw new NotImplementedException($"{binder.Name} not implemented in runtime")
             };
+        }
+
+        private DynamicMetaObject ConstructIsTruthy(DynamicMetaObject[] args)
+        {
+            if (args.Length != 1)
+                throw new InvalidDataException();
+
+            var arg = args[0];
+
+            var def = GetDefintion(arg.Value);
+            var truthy = !def.GetMembers().Any(m => ReferenceEquals(m.Item1, KW.ELSE));
+            var expr = Expression.Convert(Expression.Constant(truthy), typeof(object));
+            return new DynamicMetaObject(expr,
+                BindingRestrictions.GetTypeRestriction(arg.Expression, arg.Value!.GetType()), truthy);
         }
 
         private class AssocPair

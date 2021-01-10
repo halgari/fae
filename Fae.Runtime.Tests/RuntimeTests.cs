@@ -43,5 +43,13 @@ namespace Fae.Runtime.Tests
             Assert.Same(val1.GetType(), val2.GetType());
             
         }
+        
+        [Fact]
+        public void CanCreateIf()
+        {
+//            Assert.True(RT.IsTruthy(42));
+            Assert.True(RT.IsTruthy(KW.Next));
+            Assert.False(RT.IsTruthy(KW.EOL));
+        }
     }
 }
