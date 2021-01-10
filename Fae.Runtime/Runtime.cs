@@ -23,6 +23,11 @@ namespace Fae.Runtime
     public class DynamicRuntime : DynamicMetaObject
     {
         public static ConcurrentDictionary<Type, IStructDefinition> StructDefinitions = new();
+
+        static DynamicRuntime()
+        {
+            StructDefinitions.TryAdd(typeof(int), new PrimitiveStructDefinition<int>("fae.int/value"));
+        }
         
         public DynamicRuntime(Expression expression, BindingRestrictions restrictions) : base(expression, restrictions)
         {
@@ -58,13 +63,6 @@ namespace Fae.Runtime
                 BindingRestrictions.GetTypeRestriction(arg.Expression, arg.Value!.GetType()), truthy);
         }
 
-        private class AssocPair
-        {
-            public Keyword keyword;
-            public DynamicMetaObject key;
-            public Expression valueExpr;
-            public Type valueType;
-        }
         private DynamicMetaObject ConstructWith(InvokeMemberBinder binder, DynamicMetaObject[] aargs)
         {
             if (aargs.Length % 2 != 1)

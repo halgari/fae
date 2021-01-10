@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Concurrent;
 using System.Dynamic;
 using System.Linq.Expressions;
@@ -102,6 +103,13 @@ namespace Fae.Runtime
         public static Keyword Next = Keyword.Intern("fae.list/next");
         public static Keyword ELSE = Keyword.Intern("fae.conditional/branch");
         public static Keyword Flag = Keyword.Intern("fae.flag/set");
+        public static Keyword EOS = Keyword.Intern("fae.reader/end-of-stream!");
+        public static Keyword ReaderFile = Keyword.Intern("meta.fae.reader/file");
+        public static Keyword ReaderLine = Keyword.Intern("meta.fae.reader/line");
+        public static Keyword ReaderColumn = Keyword.Intern("meta.fae.reader/column");
+
+        public static Keyword ValueInt = Keyword.Intern("fae.int/value");
+        public static Keyword SizedCount = Keyword.Intern("fae.sized/size");
     }
 
     internal class KeywordStructDefinition : IStructDefinition
