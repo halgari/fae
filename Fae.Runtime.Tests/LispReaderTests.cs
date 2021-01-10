@@ -22,8 +22,24 @@ namespace Fae.Runtime.Tests
         [Fact]
         public void CanReadLists()
         {
-            var val = Read($"({string.Join(" ", Enumerable.Range(0, 10))})");
+            const int max = 10;
+            var val = Read($"({string.Join(" ", Enumerable.Range(0, max))})");
             Assert.Equal(0, RT.Get(RT.Get(val, KW.First), KW.ValueInt));
+
+            int i = 0;
+            for (; RT.IsTruthy(val); val = RT.Get(val, KW.Next))
+            {
+                Assert.Equal(i, RT.Get(RT.Get(val, KW.First), KW.ValueInt));
+                Assert.Equal(max - i, RT.Get(val, KW.SizedCount));
+                i++;
+            }
+        }
+
+        [Fact]
+        public void CanReadSymbols()
+        {
+            var val = Read("foo");
+            
         }
 
 

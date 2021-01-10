@@ -35,7 +35,8 @@ namespace Fae.Runtime
         protected Keyword(string name)
         {
             var offset = name.IndexOf("/", StringComparison.Ordinal);
-            _ns = name.Substring(0, offset);
+            _ns = offset == -1 ? "ns.undefined/" : name.Substring(0, offset);
+
             _name = name.Substring(offset + 1);
             _str = name;
             _hash = name.GetHashCode() ^ 0xBEEF;
@@ -110,6 +111,7 @@ namespace Fae.Runtime
 
         public static Keyword ValueInt = Keyword.Intern("fae.int/value");
         public static Keyword SizedCount = Keyword.Intern("fae.sized/size");
+        public static Keyword SymbolKeyword = Keyword.Intern("fae.symbol/keyword");
     }
 
     internal class KeywordStructDefinition : IStructDefinition

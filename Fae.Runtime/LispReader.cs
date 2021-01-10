@@ -69,7 +69,9 @@ namespace Fae.Runtime
             if (s!.StartsWith(":"))
                 return Keyword.Intern(s.Substring(1));
 
-            throw new NotImplementedException($"No way to interpret: {s}");
+
+            var kw = Keyword.Intern(s);
+            return RT.New(KW.SymbolKeyword, kw);
         }
 
         public Dictionary<char, IReader> _readers = new()
