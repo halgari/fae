@@ -29,22 +29,26 @@ namespace Fae.Runtime
         [StructMember("keyword/value")] 
         private Keyword Value => this;
 
-        public bool IsMeta { get; internal set; }
-        public bool IsFalsey { get; internal set; }
+        public bool IsMeta { get; }
+        public bool IsFalsey { get; }
+        public bool IsUndefinedNS { get; }
+
 
         protected Keyword(string name)
         {
             var offset = name.IndexOf("/", StringComparison.Ordinal);
-            _ns = offset == -1 ? "ns.undefined/" : name.Substring(0, offset);
+            _ns = offset == -1 ? "ns.undefined" : name.Substring(0, offset);
 
             _name = name.Substring(offset + 1);
-            _str = name;
+            _str = String.Intern(_ns + "/" + _name);
             _hash = name.GetHashCode() ^ 0xBEEF;
 
             IsMeta = _ns.StartsWith("meta.");
             IsFalsey = _name.EndsWith("!");
+            IsUndefinedNS = _ns == "ns.undefined";
         }
 
+        
         private static readonly ConcurrentDictionary<string, Keyword> _registry = new();
         
         public static Keyword Intern(string name)

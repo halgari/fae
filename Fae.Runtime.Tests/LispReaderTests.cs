@@ -39,7 +39,7 @@ namespace Fae.Runtime.Tests
         public void CanReadSymbols()
         {
             var val = Read("foo");
-            
+            Assert.Equal(Keyword.Intern("ns.undefined/foo"), RT.Get(val, KW.SymbolKeyword));
         }
 
 
