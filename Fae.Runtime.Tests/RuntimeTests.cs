@@ -51,5 +51,14 @@ namespace Fae.Runtime.Tests
             Assert.True(RT.IsTruthy(KW.Next));
             Assert.False(RT.IsTruthy(KW.EOL));
         }
+
+        /*
+        [Fact]
+        public void CanCreateVectorStructs()
+        {
+            var result = RT.VectorStruct(new object[] {1, 2, 3, 4});
+            
+            
+        }*/
     }
 }

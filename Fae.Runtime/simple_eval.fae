@@ -1,0 +1,14 @@
+﻿
+
+
+(defn eval [globals locals form]
+  (if (expr? form)
+    (eval-expr globals locals form)
+    (if (symbol? form)
+      (eval-symbol form)
+      form)))
+
+(defn eval-expr [globals locals form]
+  (let [head (eval globals locals (first form))]
+    (if (code? head)
+      (eval-all globals locals ()))))

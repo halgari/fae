@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Text;
-using static Fae.Runtime.RuntimeObject;
+using Microsoft.VisualBasic.CompilerServices;
 
-namespace Fae.Runtime
+namespace Wyld
 {
     public class LispReader
     {
@@ -19,16 +20,14 @@ namespace Fae.Runtime
             _fileName = fileName;
         }
 
-        public object ReadOne(bool eofIsError = false)
+        public object? ReadOne(bool eofIsError = false)
         {
             EatWhitespace();
-            var lineStart = Rdr.Line;
-            var columnStart = Rdr.Column;
             var o = _readOne(eofIsError);
-            return RT.With(o, KW.ReaderFile, _fileName, KW.ReaderLine, lineStart, KW.ReaderColumn, columnStart);
+            return o;
         }
 
-        public object _readOne(bool eofIsError = false)
+        public object? _readOne(bool eofIsError = false)
         {
             var ch = Rdr.ReadChar();
             if (!ch.HasValue)
@@ -38,7 +37,7 @@ namespace Fae.Runtime
                     throw new EndOfStreamException();
                 }
 
-                return KW.EOS;
+                return null;
 
             }
 
@@ -69,15 +68,16 @@ namespace Fae.Runtime
             if (s!.StartsWith(":"))
                 return Keyword.Intern(s.Substring(1));
 
-
-            var kw = Keyword.Intern(s);
-            return RT.New(KW.SymbolKeyword, kw);
+            return Symbol.Parse(s);
         }
 
         public Dictionary<char, IReader> _readers = new()
         {
             {'(', new ListReader()},
-            {')', new UnmatchedReader('(')}
+            {')', new UnmatchedReader('(')},
+            {'[', new VectorStructReader()},
+            {']', new UnmatchedReader('[')},
+            {'^', new TypeReader()}
         };
 
     private static HashSet<char> _whitespace = " \t\r\n,".ToHashSet();
@@ -96,12 +96,28 @@ namespace Fae.Runtime
 
     public interface IReader
     {
-        public object Read(LispReader rdr, char start);
+        public object? Read(LispReader rdr, char start);
+    }
+
+    internal class TypeReader : IReader
+    {
+        public object? Read(LispReader rdr, char start)
+        {
+            var type = rdr.ReadOne(true);
+            var obj = rdr.ReadOne(true);
+            if (obj is IMeta mobj && type is Symbol s)
+            {
+                var meta = mobj.Meta.Add(KW.Type, s);
+                return mobj.WithMeta(meta);
+            }
+
+            throw new Exception($"Expected meta object, got {obj!.GetType()} expected symbol, got {type!.GetType()}");
+        }
     }
 
     internal class ListReader : IReader
     {
-        public object Read(LispReader rdr, char start)
+        public object? Read(LispReader rdr, char start)
         {
             var vals = new List<object>();
             while (true)
@@ -109,16 +125,43 @@ namespace Fae.Runtime
                 rdr.EatWhitespace();
 
                 var pk = rdr.Rdr.PeekChar();
-                if (!pk.HasValue)
-                    throw new Exception("Found End of file before end of list");
-
-                if (pk.Value == ')')
+                switch (pk)
                 {
-                    rdr.Rdr.Read();
-                    return Utils.MakeList(vals);
+                    case null:
+                        throw new Exception("Found End of file before end of list");
+                    case ')':
+                        rdr.Rdr.Read();
+                        return Cons.FromList(vals);
+                    default:
+                        vals.Add(rdr.ReadOne());
+                        break;
                 }
+            }
 
-                vals.Add(rdr.ReadOne());
+        }
+    }
+    
+    internal class VectorStructReader : IReader
+    {
+        public object? Read(LispReader rdr, char start)
+        {
+            var vals = new List<object>();
+            while (true)
+            {
+                rdr.EatWhitespace();
+
+                var pk = rdr.Rdr.PeekChar();
+                switch (pk)
+                {
+                    case null:
+                        throw new Exception("Found End of file before end of list");
+                    case ']':
+                        rdr.Rdr.Read();
+                        return Cons.FromList(vals);
+                    default:
+                        vals.Add(rdr.ReadOne());
+                        break;
+                }
             }
 
         }
@@ -126,13 +169,12 @@ namespace Fae.Runtime
     
     internal class UnmatchedReader : IReader
     {
-        private char _other;
-
+        private readonly char _other;
         public UnmatchedReader(char other)
         {
             _other = other;
         }
-        public object Read(LispReader rdr, char start)
+        public object? Read(LispReader rdr, char start)
         {
             throw new Exception($"Found {start} without matching {_other}");
 

@@ -27,6 +27,7 @@ namespace Fae.Runtime
         static DynamicRuntime()
         {
             StructDefinitions.TryAdd(typeof(int), new PrimitiveStructDefinition<int>("fae.int/value"));
+            StructDefinitions.TryAdd(typeof(EmptyStruct), new EmptyStructTypeDefinition());
         }
         
         public DynamicRuntime(Expression expression, BindingRestrictions restrictions) : base(expression, restrictions)
@@ -45,8 +46,23 @@ namespace Fae.Runtime
                 "New" => ConstructNew(binder, args),
                 "With" => ConstructWith(binder, args),
                 "IsTruthy" => ConstructIsTruthy(args),
+                "VectorStruct" => ConstructVectorStruct(args),
                 _ => throw new NotImplementedException($"{binder.Name} not implemented in runtime")
             };
+        }
+
+        private DynamicMetaObject ConstructVectorStruct(DynamicMetaObject[] args)
+        {
+            if (args.Length != 1)
+                throw new Exception("Too many armors to VectorStruct");
+
+            var arg = args[0];
+
+            if (arg.RuntimeType != typeof(object[]))
+                throw new Exception("Expected object array to vector array");
+            // TODO: think about this;
+
+            throw new NotImplementedException();
         }
 
         private DynamicMetaObject ConstructIsTruthy(DynamicMetaObject[] args)

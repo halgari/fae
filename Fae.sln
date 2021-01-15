@@ -6,6 +6,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fae.Runtime", "Fae.Runtime\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fae.Runtime.Tests", "Fae.Runtime.Tests\Fae.Runtime.Tests.csproj", "{593BF265-7DE4-4804-9E1A-48F9DFB45B39}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wyld", "Wyld\Wyld.csproj", "{5CD2AB27-CB17-4973-AE64-BD462EF3A708}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wyld.Test", "Wyld.Test\Wyld.Test.csproj", "{B600AED1-93BA-49D9-8AC7-E5C252EF0E4C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +28,13 @@ Global
 		{593BF265-7DE4-4804-9E1A-48F9DFB45B39}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{593BF265-7DE4-4804-9E1A-48F9DFB45B39}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{593BF265-7DE4-4804-9E1A-48F9DFB45B39}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5CD2AB27-CB17-4973-AE64-BD462EF3A708}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5CD2AB27-CB17-4973-AE64-BD462EF3A708}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5CD2AB27-CB17-4973-AE64-BD462EF3A708}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5CD2AB27-CB17-4973-AE64-BD462EF3A708}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B600AED1-93BA-49D9-8AC7-E5C252EF0E4C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B600AED1-93BA-49D9-8AC7-E5C252EF0E4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B600AED1-93BA-49D9-8AC7-E5C252EF0E4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B600AED1-93BA-49D9-8AC7-E5C252EF0E4C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

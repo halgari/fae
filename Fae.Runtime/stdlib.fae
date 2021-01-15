@@ -1,0 +1,27 @@
+(ns fae.stdlib)
+
+(raise {:fae.effect/define-global 
+        :fae.flag/set
+        
+        :fae.effect.define-global/key
+        ::def
+        
+        :fae.effect.define-global/value
+        (fxexpr def [globals locals key val]
+                (raise {:fae.effect/define-global
+                        :fae.flag/set
+                        
+                        :fae.effect.define-global/key key
+                        :fae.effect.define-global/value (eval globals locals val)}))})
+
+
+(def first (fn [x]
+             (match x
+                    {:fae.list/first v} v
+                    {:fae.indexed/0 v} v)))
+
+(def let (fexpr let 
+                [globals locals key value body]
+                (eval globals
+                      (with-local locals key (eval globals locals value))
+                      body)))

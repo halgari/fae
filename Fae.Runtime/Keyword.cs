@@ -32,6 +32,7 @@ namespace Fae.Runtime
         public bool IsMeta { get; }
         public bool IsFalsey { get; }
         public bool IsUndefinedNS { get; }
+        public string Name => _name;
 
 
         protected Keyword(string name)
@@ -39,8 +40,8 @@ namespace Fae.Runtime
             var offset = name.IndexOf("/", StringComparison.Ordinal);
             _ns = offset == -1 ? "ns.undefined" : name.Substring(0, offset);
 
-            _name = name.Substring(offset + 1);
-            _str = String.Intern(_ns + "/" + _name);
+            _name = string.Intern(name.Substring(offset + 1));
+            _str = string.Intern(_ns + "/" + _name);
             _hash = name.GetHashCode() ^ 0xBEEF;
 
             IsMeta = _ns.StartsWith("meta.");
@@ -82,6 +83,11 @@ namespace Fae.Runtime
         public string GetStr()
         {
             return _str;
+        }
+
+        public static Keyword Intern(string ns, string name)
+        {
+            return Intern(ns + "/" + name);
         }
     }
 

@@ -10,4 +10,19 @@
       <PackageReference Include="System.Reflection.Emit.ILGeneration" Version="4.7.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Update="InvokableInterfaces.tt">
+        <Generator>TextTemplatingFileGenerator</Generator>
+        <LastGenOutput>InvokableInterfaces.cs</LastGenOutput>
+      </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="InvokableInterfaces.cs">
+        <AutoGen>True</AutoGen>
+        <DesignTime>True</DesignTime>
+        <DependentUpon>InvokableInterfaces.tt</DependentUpon>
+      </Compile>
+    </ItemGroup>
+
 </Project>
