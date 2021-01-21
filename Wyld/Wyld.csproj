@@ -5,4 +5,23 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <PackageReference Include="GrEmit" Version="3.3.18" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="IInvokable.tt">
+        <Generator>TextTemplatingFileGenerator</Generator>
+        <LastGenOutput>IInvokable.cs</LastGenOutput>
+      </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="IInvokable.cs">
+        <AutoGen>True</AutoGen>
+        <DesignTime>True</DesignTime>
+        <DependentUpon>IInvokable.tt</DependentUpon>
+      </Compile>
+    </ItemGroup>
+
 </Project>

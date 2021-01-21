@@ -77,7 +77,8 @@ namespace Wyld
             {')', new UnmatchedReader('(')},
             {'[', new VectorStructReader()},
             {']', new UnmatchedReader('[')},
-            {'^', new TypeReader()}
+            {'^', new TypeReader()},
+            {'"', new StringLiteralReader()}
         };
 
     private static HashSet<char> _whitespace = " \t\r\n,".ToHashSet();
@@ -92,6 +93,30 @@ namespace Wyld
             }
         }
         
+    }
+
+    public class StringLiteralReader : IReader
+    {
+        public object? Read(LispReader rdr, char start)
+        {
+            var sb = new StringBuilder();
+            while (true)
+            {
+                var ch = rdr.Rdr.ReadChar();
+                switch (ch)
+                {
+                    case '\\':
+                        ch = rdr.Rdr.ReadChar();
+                        sb.Append(ch!);
+                        break;
+                    case '"':
+                        return sb.ToString();
+                    default:
+                        sb.Append(ch!);
+                        break;
+                }
+            }
+        }
     }
 
     public interface IReader
@@ -110,8 +135,10 @@ namespace Wyld
                 var meta = mobj.Meta.Add(KW.Type, s);
                 return mobj.WithMeta(meta);
             }
-
-            throw new Exception($"Expected meta object, got {obj!.GetType()} expected symbol, got {type!.GetType()}");
+            else
+            {
+                return obj;
+            }
         }
     }
 
@@ -157,7 +184,7 @@ namespace Wyld
                         throw new Exception("Found End of file before end of list");
                     case ']':
                         rdr.Rdr.Read();
-                        return Cons.FromList(vals);
+                        return new Vector(vals.ToArray());
                     default:
                         vals.Add(rdr.ReadOne());
                         break;

@@ -21,6 +21,12 @@ namespace Wyld.Test
         }
 
         [Fact]
+        public void CanReadStrings()
+        {
+            Assert.Equal("test", Read("\"test\""));
+        }
+
+        [Fact]
         public void CanReadLists()
         {
             var lst = (Cons)Read("(0 1 2 3 4 5 6 7 8 9 10)");

@@ -33,10 +33,21 @@ namespace Wyld
         }
 
         public static Cons? FromList<T>(List<T> objs)
-        where T : notnull
+            where T : notnull
         {
             Cons? acc = null;
             for (var idx = objs.Count - 1; idx >= 0; idx--)
+            {
+                acc = new Cons(objs[idx], acc);
+            }
+            return acc;
+        }
+        
+        public static Cons? FromArray<T>(T[] objs)
+            where T : notnull
+        {
+            Cons? acc = null;
+            for (var idx = objs.Length - 1; idx >= 0; idx--)
             {
                 acc = new Cons(objs[idx], acc);
             }

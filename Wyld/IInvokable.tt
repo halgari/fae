@@ -1,0 +1,88 @@
+﻿<#@ template language="C#v3.5" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+using System;
+
+public interface IInvokable 
+{
+}
+
+public static class Invokable
+{
+    public static Type InvokableArity(int i) {
+        return i switch {
+        <#
+    for (int i = 0; i < 10; i++)
+    {
+#>
+            <#=i#> => typeof(IInvokableArity<<#=string.Join(",",Enumerable.Range(0, i + 1).Select(_ => ""))#>>),
+<#
+    }
+#>
+            _ => throw new Exception($"Cannot create a InvokableArity of {i} arguments")
+        };  
+
+    }
+
+
+    public static Type InvokableCombination(int i) {
+        return i switch {
+        <#
+    for (int i = 0; i < 10; i++)
+    {
+#>
+            <#=i#> => typeof(IInvokableCombination<<#=string.Join(",",Enumerable.Range(0, i).Select(_ => ""))#>>),
+<#
+    }
+#>
+            _ => throw new Exception($"Cannot create a Invokable of {i} arguments")
+        };  
+
+    }
+
+
+}
+
+<#
+
+    string TList(int argc)
+    {
+        if (argc == 0)
+            return "TR";
+
+        return "TR, " + string.Join(", ", Enumerable.Range(0, argc).Select(a => $"T{a}"));
+
+    }
+
+    for (int x = 0; x < 10; x++)
+    {
+#>
+public interface IInvokableArity<<#=TList(x)#>> : IInvokable {
+   TR Invoke(<#=string.Join(", ", Enumerable.Range(0, x).Select(a => $"T{a} arg{a}"))#>);
+}
+
+
+<#
+    }
+
+    for (int x = 1; x < 10; x++)
+    {
+#>
+public interface IInvokableCombination<<#=
+    string.Join(", ", Enumerable.Range(0, x).Select(a => $"T{a}")) #>> : IInvokable 
+
+<#
+        for (int y = 0; y < x; y++) {
+
+#>
+   where T<#=y#> : IInvokable
+<#
+    }
+#>
+
+{
+}
+
+<#
+    }
+#>
