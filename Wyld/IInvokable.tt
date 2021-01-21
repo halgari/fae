@@ -2,6 +2,7 @@
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.Linq" #>
 using System;
+using Wyld;
 
 public interface IInvokable 
 {
@@ -58,7 +59,7 @@ public static class Invokable
     {
 #>
 public interface IInvokableArity<<#=TList(x)#>> : IInvokable {
-   TR Invoke(<#=string.Join(", ", Enumerable.Range(0, x).Select(a => $"T{a} arg{a}"))#>);
+   Result<TR> Invoke(<#=string.Join(", ", Enumerable.Range(0, x).Select(a => $"T{a} arg{a}"))#>);
 }
 
 

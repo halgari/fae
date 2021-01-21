@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Data;
 
 namespace Wyld
 {
@@ -8,17 +9,30 @@ namespace Wyld
     public struct Result<T>
     {
         public T Value;
-        public AEffect Effect;
-
-        public Result<TR> WithK<TR>(Func<object, TR> k)
-        {
-            return default;
-        }
+        public Effect? Effect;
     }
     
-    public abstract class AEffect
+    public class Effect
     {
-        public Func<object, object> K;
+        /// <summary>
+        /// Next effect up the chain
+        /// </summary>
+        public Effect? Parent;
+     
+        /// <summary>
+        /// Arbitrary state handed to K
+        /// </summary>
+        public object? State;
+        
+        /// <summary>
+        /// A function that takes State and a param and continues execution
+        /// </summary>
+        public object K;
+
+        /// <summary>
+        /// Handlers should look at this value when considering if they should handle the effect
+        /// </summary>
+        public object FlagValue;
 
     }
 

@@ -11,6 +11,7 @@ namespace Wyld.Expressions
         }
         public void Emit(WriterState state)
         {
+            using var _ = state.WithTailCallFlag(false);
             Expression.Emit(state);
             if (Type == typeof(object) && Expression.Type.IsValueType)
             {

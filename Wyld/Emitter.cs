@@ -34,8 +34,9 @@ namespace Wyld
             _typeBuilder = _moduleBuilder.DefineType("TopLevel", TypeAttributes.Class | TypeAttributes.Sealed);
             _typeBuilder.AddInterfaceImplementation(typeof(IInvokableArity<object>));
             _typeBuilder.AddInterfaceImplementation(typeof(IInvokableCombination<IInvokableArity<object>>));
-            var mb = _typeBuilder.DefineMethod("Invoke", MethodAttributes.Public | MethodAttributes.Virtual, typeof(object), Array.Empty<Type>());
-            mb.SetReturnType(typeof(object));
+            var mb = _typeBuilder.DefineMethod("Invoke", MethodAttributes.Public | MethodAttributes.Virtual);
+            mb.SetParameters(Array.Empty<Type>());
+            mb.SetReturnType(typeof(Result<object>));
 
             _staticConstructor = _typeBuilder.DefineConstructor(MethodAttributes.Static, CallingConventions.Standard, Array.Empty<Type>());
             _staticConstructorIL = new GroboIL(_staticConstructor);
@@ -46,6 +47,7 @@ namespace Wyld
             {
                 var ws = new WriterState(il, this);
                 expr.Emit(ws);
+                EmitWrapInResult(ws, expr.Type);
                 il.Ret();
             }
             _typeBuilder.DefineMethodOverride(mb, typeof(IInvokableArity<object>).GetMethod("Invoke")!);
@@ -54,6 +56,30 @@ namespace Wyld
             var newTp = _typeBuilder.CreateType();
             var inst = Activator.CreateInstance(newTp!);
             return (IInvokableArity<object>)inst!;
+        }
+
+        private void EmitWrapInResult(WriterState state, Type valueType)
+        {
+            
+            var type = typeof(Result<>).MakeGenericType(valueType);
+            var lcl = state.IL.DeclareLocal(type);
+            var tmp = state.IL.DeclareLocal(valueType);
+            
+            // Save the ret value for later
+            state.IL.Stloc(tmp);
+            
+            // Init the struct
+            state.IL.Ldloca(lcl);
+            state.IL.Initobj(type);
+            
+            // Write the value
+            state.IL.Ldloca(lcl);
+            state.IL.Ldloc(tmp);
+            state.IL.Stfld(type.GetField("Value"));
+            
+            // Push the struct onto the stack
+            state.IL.Ldloc(lcl);
+            
         }
 
         public void EmitLambda(Lambda lambda, WriterState parentWriter)
@@ -69,11 +95,12 @@ namespace Wyld
 
                 var mb = _typeBuilder.DefineMethod("Invoke", MethodAttributes.Public | MethodAttributes.Virtual);
                 mb.SetParameters(arity.Parameters.Select(p => p.Type).ToArray());
-                mb.SetReturnType(arity.Body.Type);
+                mb.SetReturnType(typeof(Result<>).MakeGenericType(arity.Body.Type));
                 using (var il = new GroboIL(mb))
                 {
                     var state = new WriterState(il, this);
                     arity.Body.Emit(state);
+                    EmitWrapInResult(state, arity.Body.Type);
                     il.Ret();
                 }
                 _typeBuilder.DefineMethodOverride(mb, arity.Type.GetMethod("Invoke")!);

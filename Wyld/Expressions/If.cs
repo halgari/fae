@@ -23,7 +23,12 @@ namespace Wyld.Expressions
         {
             var end = state.IL.DefineLabel("end");
             var branch = state.IL.DefineLabel("branch");
-            Test.Emit(state);
+            
+            using (var _ = state.WithTailCallFlag(false))
+            {
+                Test.Emit(state);
+            }
+
             state.IL.Brfalse(branch);
             Then.Emit(state);
             state.IL.Br(end);

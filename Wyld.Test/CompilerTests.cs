@@ -69,7 +69,7 @@ namespace Wyld.Test
 
         private object Eval(string s)
         {
-            object lastObj = "";
+            Result<object> lastObj = default;
             var reader = new LispReader(new LineNumberingReader(new MemoryStream(Encoding.UTF8.GetBytes(s))));
             var compiler = new Compiler2();
 
@@ -77,9 +77,11 @@ namespace Wyld.Test
             {
                 var form = reader.ReadOne();
                 if (form == null)
-                    return lastObj;
+                    return lastObj.Value;
 
                 lastObj = compiler.Compile(form).Invoke();
+                if (lastObj.Effect != null)
+                    throw new Exception("Got Effect inside eval test");
             }
         }
     }

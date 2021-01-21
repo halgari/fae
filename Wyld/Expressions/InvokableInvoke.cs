@@ -33,11 +33,25 @@ namespace Wyld.Expressions
         {
             Fn.Emit(state);
             state.IL.Castclass(DeclaringType);
-            foreach(var arg in Args)
+            foreach (var arg in Args)
+            {
+                using var _ = state.WithTailCallFlag(false);
                 arg.Emit(state);
-            state.IL.Call(MethodInfo);
+            }
 
+            state.IL.Call(MethodInfo, tailcall: state.CanTailCall);
+
+            if (state.CanTailCall)
+            {
+                state.IL.Ret();
+                return;
+            }
             
+            var tp = typeof(Result<>).MakeGenericType(Type);
+            var tmp = state.IL.DeclareLocal(tp);
+            state.IL.Stloc(tmp);
+            state.IL.Ldloca(tmp);
+            state.IL.Ldfld(tp.GetField("Value"));
         }
     }
 }
