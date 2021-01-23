@@ -53,6 +53,12 @@ namespace Wyld.Test
             Assert.Equal(8, Eval("(((fn ^int [^int y] (fn ^int [^int x] (sys/+ x y))) 3) 5)"));
         }
 
+        [Fact]
+        public void CanCompileLet()
+        {
+            Assert.Equal(42, Eval("(let [x 42] x)"));
+        }
+
         /// <summary>
         /// Exercises tail calls, defn, and recursive functions
         /// </summary>

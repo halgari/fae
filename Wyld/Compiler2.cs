@@ -75,6 +75,8 @@ namespace Wyld
                     return CompileDefn(cons.Tail!.ToArray());
                 case Symbol {Namespace: null, Name: "if"}:
                     return CompileIf(cons.Tail!.ToArray());
+                case Symbol {Namespace: null, Name: "let"}:
+                    return CompileLet(cons.Tail!);                
                 case Symbol {Namespace: null} s when s.Name.StartsWith(".-"):
                     return CompilePropertyLookup(cons);
             }
@@ -83,7 +85,29 @@ namespace Wyld
             var args = cons.Tail!.Select(CompileForm).ToArray();
             return Expression.Invoke(fn, args);
         }
-        
+
+        private IExpression CompileLet(Cons form)
+        {
+            var bindings = Cons.FromArray(((Vector)form.Head).ToArray());
+            var body = form.Tail;
+
+            IExpression LetInner(Cons? bindings)
+            {
+                if (bindings == null)
+                    return CompileDo(body!.ToArray());
+                var sym = (Symbol)bindings.Head;
+                if (sym.Namespace != null)
+                    throw new Exception($"Locals must not be namespaced, got {sym}");
+                
+                var bind = CompileForm(bindings.Tail!.Head);
+                var local = Expression.Local(sym.Name, bind.Type);
+                using var _ = WithLocals(local);
+                return Expression.Let(local, bind, LetInner(bindings.Tail.Tail));
+            }
+
+            return LetInner(bindings);
+        }
+
         private IExpression CompileDef(object[] args)
         {
             var sym = (Symbol)args[0];

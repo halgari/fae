@@ -40,5 +40,8 @@ namespace Wyld.Expressions
         public static This This(string name, Type type) => new This(name, type);
 
         public static FreeVariable FreeVariable(ILocal source) => new(source);
+
+        public static Let Let(Local local, IExpression bind, IExpression body) => new(local, bind, body);
+        public static Local Local(string name, Type type) => new(name, type);
     }
 }

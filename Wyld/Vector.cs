@@ -14,6 +14,11 @@ namespace Wyld
             Meta = ImmutableDictionary<Keyword, object>.Empty;
         }
 
+        public Cons? ToCons()
+        {
+            return Cons.FromArray(_vals);
+        }
+
         public Vector(object[] vals, ImmutableDictionary<Keyword, object> meta)
         {
             _vals = vals;
@@ -21,6 +26,8 @@ namespace Wyld
         }
 
         public ImmutableDictionary<Keyword, object> Meta { get; }
+        public int Length => _vals.Length;
+
         public object WithMeta(ImmutableDictionary<Keyword, object> meta)
         {
             return new Vector(_vals, meta);
