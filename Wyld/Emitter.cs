@@ -159,5 +159,21 @@ namespace Wyld
             freeVariable.FieldInfo = _typeBuilder.DefineField(fieldName, freeVariable.Type, FieldAttributes.Public);
             return freeVariable.FieldInfo;
         }
+
+        public FieldInfo AddNonNativeConstant(Keyword kw)
+        {
+            if (_nonNativeConstants.TryGetValue(kw, out var result))
+                return result;
+
+            var nm = "const_kw_" + _nonNativeConstants.Count;
+            var fi = _typeBuilder.DefineField(nm, kw.GetType(), FieldAttributes.Static | FieldAttributes.Private);
+            _nonNativeConstants.Add(kw, fi);
+            
+            _staticConstructorIL.Ldstr(kw.Namespace);
+            _staticConstructorIL.Ldstr(kw.Name);
+            _staticConstructorIL.Call(typeof(Keyword).GetMethod("Intern", new []{typeof(string), typeof(string)}));
+            _staticConstructorIL.Stfld(fi);
+            return fi;
+        }
     }
 }

@@ -36,12 +36,14 @@ namespace Wyld.Expressions
                     state.IL.Ldstr(svalue);
                     return;
                 case IBox box:
-                    var result = state.Emitter.AddNonNativeConstant(box);
-                    state.IL.Ldfld(result);
+                    state.IL.Ldfld(state.Emitter.AddNonNativeConstant(box));
+                    return;
+                case Keyword kw:
+                    state.IL.Ldfld(state.Emitter.AddNonNativeConstant(kw));
                     return;
             }
 
-            throw new NotImplementedException($"Can't emit constant for {Value}");
+            throw new NotImplementedException($"Can't emit constant for {Value} of type {Value.GetType()}");
         }
     }
 }

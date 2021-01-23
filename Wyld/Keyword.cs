@@ -5,9 +5,9 @@ namespace Wyld
 {
     public class Keyword : IComparable<Keyword>
     {
-        private string Namespace;
+        public string Namespace;
 
-        private string Name;
+        public string Name;
 
         private string _str;
 

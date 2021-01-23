@@ -41,17 +41,7 @@ namespace Wyld.Expressions
 
             state.IL.Call(MethodInfo, tailcall: state.CanTailCall);
 
-            if (state.CanTailCall)
-            {
-                state.IL.Ret();
-                return;
-            }
-            
-            var tp = typeof(Result<>).MakeGenericType(Type);
-            var tmp = state.IL.DeclareLocal(tp);
-            state.IL.Stloc(tmp);
-            state.IL.Ldloca(tmp);
-            state.IL.Ldfld(tp.GetField("Value"));
+            state.EmitResultPostlude(Type);
         }
     }
 }

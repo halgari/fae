@@ -40,6 +40,22 @@ namespace Wyld.Expressions
                 _state._tailCallFlags = _state._tailCallFlags.Pop();
             }
         }
+
+
+        public void EmitResultPostlude(Type type)
+        {
+            if (CanTailCall)
+            {
+                IL.Ret();
+                return;
+            }
+
+            var tp = typeof(Result<>).MakeGenericType(type);
+            var tmp = IL.DeclareLocal(tp);
+            IL.Stloc(tmp);
+            IL.Ldloca(tmp);
+            IL.Ldfld(tp.GetField("Value"));
+        }
     }
 
 

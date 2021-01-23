@@ -22,12 +22,17 @@ namespace Wyld
         /// <summary>
         /// Arbitrary state handed to K
         /// </summary>
-        public object? State;
+        public object? KState;
         
         /// <summary>
         /// A function that takes State and a param and continues execution
         /// </summary>
         public object K;
+
+        /// <summary>
+        /// Actual effect data
+        /// </summary>
+        public object Data;
 
         /// <summary>
         /// Handlers should look at this value when considering if they should handle the effect

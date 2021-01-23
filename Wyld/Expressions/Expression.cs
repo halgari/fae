@@ -43,5 +43,8 @@ namespace Wyld.Expressions
 
         public static Let Let(Local local, IExpression bind, IExpression body) => new(local, bind, body);
         public static Local Local(string name, Type type) => new(name, type);
+
+        public static StaticMethodInvoke StaticMethod(MethodInfo method, params IExpression[] args) =>
+            new(method, args);
     }
 }

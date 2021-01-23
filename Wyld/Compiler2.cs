@@ -277,8 +277,18 @@ namespace Wyld
             {
                 "+" => CompileAddBuiltin(args),
                 "=" => CompileEqualsBuiltin(args),
+                "raise" => CompileRaise(head, args),
                 _ => throw new NotImplementedException()
             };
+        }
+
+        private IExpression CompileRaise(Symbol head, object[] args)
+        {
+            var retType = TypeFromSymbol(head.Meta[KW.Type]);
+            var method = typeof(Runtime).GetMethod("Raise")!.MakeGenericMethod(retType);
+            var flag = args[0];
+            var effect = args[1];
+            return Expression.StaticMethod(method, Expression.Convert<object>(CompileForm(flag)), Expression.Convert<object>(CompileForm(effect)));
         }
 
         private IExpression CompileEqualsBuiltin(IReadOnlyCollection<object> args)

@@ -79,6 +79,19 @@ namespace Wyld.Test
             Assert.Equal(3, Eval("(.-Length \"foo\")"));
         }
 
+        [Fact]
+        public void CanRaiseEffects()
+        {
+            Assert.Equal(42, Eval(@"
+                     (defn pause ^int [^int x]
+                        (^int sys/raise :pause x))
+
+                     (defn inc ^int [^int x]
+                        (sys/+ (pause x) 1))
+                      
+                     (let [x (inc 41)] x)"));
+        }
+
         private object Eval(string s)
         {
             Result<object> lastObj = default;
