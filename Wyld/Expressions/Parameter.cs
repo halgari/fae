@@ -2,7 +2,7 @@
 
 namespace Wyld.Expressions
 {
-    public class Parameter : IExpression
+    public class Parameter : ILocal
     {
         public Parameter(string name, Type type, int idx)
         {

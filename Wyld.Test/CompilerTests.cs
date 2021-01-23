@@ -47,6 +47,12 @@ namespace Wyld.Test
             Assert.Equal(2, Eval("(if (sys/= 1 2) 1 2)"));
         }
 
+        [Fact]
+        public void CanCompileClosures()
+        {
+            Assert.Equal(8, Eval("(((fn ^int [^int y] (fn ^int [^int x] (sys/+ x y))) 3) 5)"));
+        }
+
         /// <summary>
         /// Exercises tail calls, defn, and recursive functions
         /// </summary>

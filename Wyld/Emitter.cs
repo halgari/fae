@@ -18,6 +18,7 @@ namespace Wyld
         private TypeBuilder _typeBuilder;
         private ConstructorBuilder _staticConstructor;
         private GroboIL _staticConstructorIL;
+        private HashSet<FreeVariable> UsedFreeVars { get; } = new();
 
         public Emitter()
         {  
@@ -88,6 +89,7 @@ namespace Wyld
             _staticConstructor = _typeBuilder.DefineConstructor(MethodAttributes.Static, CallingConventions.Standard, Array.Empty<Type>());
             _staticConstructorIL = new GroboIL(_staticConstructor);
             _typeBuilder.AddInterfaceImplementation(lambda.Type);
+            
 
             foreach (var arity in lambda.Arities)
             {
@@ -111,6 +113,14 @@ namespace Wyld
 
             var tp =_typeBuilder.CreateType();
             parentWriter.IL.Newobj(ctor);
+            
+            foreach (var freeVar in UsedFreeVars)
+            {
+                parentWriter.IL.Dup();
+                freeVar.Source.Emit(parentWriter);
+                parentWriter.IL.Stfld(freeVar.FieldInfo);
+            }
+
         }
 
         public FieldInfo AddNonNativeConstant(IBox box)
@@ -131,6 +141,23 @@ namespace Wyld
             _staticConstructorIL.Castclass(box.GetType());
             _staticConstructorIL.Stfld(fi);
             return fi;
+        }
+
+        private int _freeVarIdx;
+        public FieldInfo GetFreeVariableField(FreeVariable freeVariable)
+        {
+            UsedFreeVars.Add(freeVariable);
+            if (freeVariable.FieldInfo != null) return freeVariable.FieldInfo;
+            string fieldName;
+            if (freeVariable.Source is Parameter p)
+                fieldName = "_fv_" + p.Name;
+            else
+            {
+                fieldName = "_fv_" + _freeVarIdx++;
+            }
+
+            freeVariable.FieldInfo = _typeBuilder.DefineField(fieldName, freeVariable.Type, FieldAttributes.Public);
+            return freeVariable.FieldInfo;
         }
     }
 }

@@ -38,5 +38,7 @@ namespace Wyld.Expressions
         public static Lambda Lambda(string name, Arity[] arities) => new(name, arities);
 
         public static This This(string name, Type type) => new This(name, type);
+
+        public static FreeVariable FreeVariable(ILocal source) => new(source);
     }
 }

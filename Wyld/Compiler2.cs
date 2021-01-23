@@ -11,14 +11,14 @@ namespace Wyld
 {
     public class Compiler2
     {
-        private ImmutableStack<ImmutableDictionary<string, IExpression>> _locals;
+        private ImmutableStack<ImmutableDictionary<string, ILocal>> _locals;
         public ConcurrentDictionary<Symbol, object> Globals = new();
 
         public ImmutableStack<string> Namespaces = ImmutableStack<string>.Empty.Push("scratch");
         
         public Compiler2()
         {
-            _locals = ImmutableStack<ImmutableDictionary<string, IExpression>>.Empty.Push(ImmutableDictionary<string, IExpression>.Empty);
+            _locals = ImmutableStack<ImmutableDictionary<string, ILocal>>.Empty.Push(ImmutableDictionary<string, ILocal>.Empty);
         }
 
         /// <summary>
@@ -112,7 +112,7 @@ namespace Wyld
             }
             else
             {
-                fnName = Symbol.Parse("unknown");
+                fnName = Symbol.Parse("_unknown_");
             }
 
             var arities = new List<(Vector, Cons)>();
@@ -139,6 +139,7 @@ namespace Wyld
 
             var carities = new List<Arity>();
 
+            using var _l_ = WithLocals(_locals.Peek().Select(l => (ILocal)Expression.FreeVariable(l.Value)).ToArray());
             foreach (var (args, body) in arities)
             {
                 var retType = TypeFromSymbol(args.Meta[KW.Type]);
@@ -154,14 +155,12 @@ namespace Wyld
             }
 
             var lambda = Expression.Lambda(fnName.Name, carities.ToArray());
-
-
             return lambda;
         }
         
-        private IDisposable WithLocals(params Parameter[] exprs)
+        private IDisposable WithLocals(params ILocal[] exprs)
         {
-            _locals = _locals.Push(exprs.Aggregate(_locals.First(), (acc, p) => acc.Add(p.Name, p)));
+            _locals = _locals.Push(exprs.Aggregate(_locals.First(), (acc, p) => acc.SetItem(p.Name, p)));
             return new PopLocals(this);
         }
 
