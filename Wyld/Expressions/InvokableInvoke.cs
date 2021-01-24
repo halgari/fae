@@ -32,16 +32,14 @@ namespace Wyld.Expressions
         public override void Emit(WriterState state)
         {
             Fn.Emit(state);
+            state.PushToEvalStack(Fn.Type);
             state.IL.Castclass(DeclaringType);
-            foreach (var arg in Args)
-            {
-                using var _ = state.WithTailCallFlag(false);
-                arg.Emit(state);
-            }
+            state.EmitEvalArgs(Args);
 
             state.IL.Call(MethodInfo, tailcall: state.CanTailCall);
+            state.PopFromEvalStack(Args.Length + 1);
 
-            state.EmitResultPostlude(Type);
+            state.EmitResultPostlude(Type, this);
         }
     }
 }

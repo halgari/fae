@@ -9,8 +9,10 @@
         public override void Emit(WriterState state)
         {
             A.Emit(state);
+            state.PushToEvalStack(A.Type);
             B.Emit(state);
             state.IL.Add();
+            state.PopFromEvalStack();
         }
     }
 }

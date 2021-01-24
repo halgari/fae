@@ -32,12 +32,12 @@ namespace Wyld
         /// <summary>
         /// Actual effect data
         /// </summary>
-        public object Data;
+        public object? Data;
 
         /// <summary>
         /// Handlers should look at this value when considering if they should handle the effect
         /// </summary>
-        public object FlagValue;
+        public object? FlagValue;
 
     }
 

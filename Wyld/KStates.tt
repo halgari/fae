@@ -1,0 +1,56 @@
+﻿<#@ template language="C#v3.5" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+using System;
+using Wyld;
+
+public class KState 
+{
+    public int StateIdx;
+
+}
+
+<#
+    int MAX_VALS = 24;
+    
+for (int x = 1; x < MAX_VALS; x ++) {
+
+#>
+
+public class KState<<#=string.Join(", ", Enumerable.Range(0, x).Select(a => $"T{a}"))#>> : KState
+{
+<#
+    for (int j = 0; j < x; j += 1)
+    {
+#>
+    public T<#=j#> Item<#=j#>;
+
+<#
+    }
+#>
+}
+
+
+<#
+}
+
+#>
+
+public static class KStates {
+    public static Type KState(int itms) {
+        return itms switch {
+            0 => typeof(KState),
+        <#
+    for (int i = 1; i < MAX_VALS; i++)
+    {
+#>
+
+            <#=i#> => typeof(KState<<#=string.Join(",",Enumerable.Range(0, i).Select(_ => ""))#>>),
+<#
+    }
+#>
+            _ => throw new Exception($"Cannot create a Invokable of {itms} arguments")
+        };  
+
+    }
+}

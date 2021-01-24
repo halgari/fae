@@ -85,5 +85,6 @@ namespace Wyld
     public static class KW
     {
         public static Keyword Type = Keyword.Intern("wyld.compiler/type");
+        public static Keyword Pause = Keyword.Intern("pause");
     }
 }

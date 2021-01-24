@@ -27,10 +27,10 @@ namespace Wyld.Expressions
         public void Emit(WriterState state)
         {
             using var _ = state.WithTailCallFlag(false);
-            foreach (var expr in Arguments)
-                expr.Emit(state);
+            state.EmitEvalArgs(Arguments);
             state.IL.Call(Method);
-            state.EmitResultPostlude(Type);
+            state.PopFromEvalStack(Arguments.Length);
+            state.EmitResultPostlude(Type, this);
         }
 
         public Type Type { get; }

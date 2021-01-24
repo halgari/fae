@@ -22,6 +22,28 @@ namespace Wyld
             return new() {Value = (T) val!};
         }
 
+        public static Result<T> BuildK<T>(object data, Func<object?, object?, Result<T>> fn, Effect parent)
+        {
+            var result = new Result<T>
+            {
+                Effect = new Effect
+                {
+                    Parent = parent,
+                    FlagValue = parent?.FlagValue,
+                    Data = parent?.Data,
+                    KState = data,
+                    K = fn
+                }
+            };
+            // Null out these fields so we can GC them if the stack sits around for awhile
+            if (parent == null) return result;
+            parent.FlagValue = default;
+            parent.Data = null;
+
+            return result;
+
+        }
+
         public static Result<T> ResumeWith<T>(Effect eff, object resumeData)
         {
             if (eff.Parent == null)

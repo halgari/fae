@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.Serialization;
 using GrEmit;
 using Wyld.Expressions;
 
@@ -43,13 +45,17 @@ namespace Wyld
             _staticConstructorIL = new GroboIL(_staticConstructor);
 
             _typeBuilder.DefineDefaultConstructor(MethodAttributes.Public);
+            
 
             using (var il = new GroboIL(mb, analyzeStack:true))
             {
-                var ws = new WriterState(il, this);
+                var ws = new WriterState(il, this, typeof(object));
+                ws.InvokeK = SetupK(mb.ReturnType);
                 expr.Emit(ws);
                 EmitWrapInResult(ws, expr.Type);
                 il.Ret();
+                ws.EmitKBuilders();
+                EmitInvokeK(ws, expr);
             }
             _typeBuilder.DefineMethodOverride(mb, typeof(IInvokableArity<object>).GetMethod("Invoke")!);
 
@@ -58,6 +64,17 @@ namespace Wyld
             var inst = Activator.CreateInstance(newTp!);
             return (IInvokableArity<object>)inst!;
         }
+
+        private MethodBuilder SetupK(Type returnType)
+        {
+            var mi = _typeBuilder.DefineMethod("InvokeK", MethodAttributes.Public | MethodAttributes.Static, returnType,
+                new[] {typeof(object), typeof(object)});
+
+            
+            
+            return mi;
+        }
+
 
         private void EmitWrapInResult(WriterState state, Type valueType)
         {
@@ -100,10 +117,15 @@ namespace Wyld
                 mb.SetReturnType(typeof(Result<>).MakeGenericType(arity.Body.Type));
                 using (var il = new GroboIL(mb))
                 {
-                    var state = new WriterState(il, this);
+                    var state = new WriterState(il, this, arity.Body.Type);
+                    state.InvokeK = SetupK(mb.ReturnType);
                     arity.Body.Emit(state);
                     EmitWrapInResult(state, arity.Body.Type);
                     il.Ret();
+                    state.EmitKBuilders();
+
+                    EmitInvokeK(state, arity.Body);
+                    
                 }
                 _typeBuilder.DefineMethodOverride(mb, arity.Type.GetMethod("Invoke")!);
             }
@@ -121,6 +143,72 @@ namespace Wyld
                 parentWriter.IL.Stfld(freeVar.FieldInfo);
             }
 
+        }
+
+        private void EmitInvokeK(WriterState mainState, IExpression arityBody)
+        {
+
+            using var ik = new GroboIL(mainState.InvokeK);
+            var ikstate = new WriterState(ik, this, mainState.FinalResultType);
+            ikstate.InvokeK = mainState.InvokeK;
+            ikstate.EmittingInvokeK = true;
+            
+            if (mainState.KBuilders.Count == 0)
+            {
+                ik.Newobj(typeof(NotImplementedException).GetConstructor(Array.Empty<Type>()));
+                ik.Throw();
+                return;
+            }
+
+            foreach (var kb in mainState.KBuilders)
+            {
+                kb.UnpackLabel = ik.DefineLabel("unpack");
+            }
+            
+            ik.Ldarg(0);
+            ik.Castclass(typeof(KState));
+            ik.Ldfld(typeof(KState).GetField("StateIdx"));
+            ik.Switch(mainState.KBuilders.Select(b => b.UnpackLabel).ToArray());
+
+            foreach (var kb in mainState.KBuilders)
+            {
+                ik.MarkLabel(kb.UnpackLabel);
+                ik.Ldarg(0);
+                var ct = ik.DeclareLocal(kb.StateTupleType, "castedtuple");
+                ik.Castclass(kb.StateTupleType);
+                ik.Stloc(ct);
+                foreach (var (tp, i) in kb.EvalStack.Select((tp, i) => (tp, i)))
+                {
+                    var fld = kb.StateTupleType.GetField("Item" + i);
+                    ik.Ldloc(ct);
+                    ik.Ldfld(fld);
+                }
+
+                kb.ResumeLabel = ik.DefineLabel("resume");
+                ik.Ldarg(1);
+                ConvertStackItem(ik, typeof(object), kb.LocalResultType);
+                ik.Br(kb.ResumeLabel);
+            }
+
+            ikstate.Resumes = mainState.KBuilders.ToDictionary(b => b.Key);
+            arityBody.Emit(ikstate);
+            EmitWrapInResult(ikstate, arityBody.Type);
+            ik.Ret();
+            ikstate.EmitKBuilders();
+            
+
+        }
+
+        private void ConvertStackItem(GroboIL ik, Type from, Type to)
+        {
+            if (from.IsClass && to.IsPrimitive) {
+                ik.Unbox_Any(to);
+                return;
+            }
+
+            if (from == to)
+                return;
+            throw new NotImplementedException($"Can't convert {from} to {to}");
         }
 
         public FieldInfo AddNonNativeConstant(IBox box)

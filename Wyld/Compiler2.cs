@@ -27,7 +27,7 @@ namespace Wyld
         /// <returns></returns>
         public IInvokableArity<object> Compile(object form)
         {
-            var expr = CompileForm(form);
+            var expr = Expression.Convert<object>(CompileForm(form));
             var emitter = new Emitter();
             return emitter.EmitTopLevel(expr);
         }

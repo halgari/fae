@@ -23,7 +23,7 @@ namespace Wyld.Expressions
 
         public void EmitBind(WriterState state)
         {
-            _iLLocal ??= state.IL.DeclareLocal(Type, Name);
+            _iLLocal = state.IL.DeclareLocal(Type, Name);
             state.IL.Stloc(_iLLocal);
         }
     }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq.Expressions;
@@ -82,14 +83,15 @@ namespace Wyld.Test
         [Fact]
         public void CanRaiseEffects()
         {
-            Assert.Equal(42, Eval(@"
+            Assert.Equal(new object[] {42}, 
+                EvalPauseStream(@"
                      (defn pause ^int [^int x]
                         (^int sys/raise :pause x))
 
                      (defn inc ^int [^int x]
                         (sys/+ (pause x) 1))
                       
-                     (let [x (inc 41)] x)"));
+                     (let [x (inc 41)] (sys/+ 1 (pause x)))"));
         }
 
         private object Eval(string s)
@@ -108,6 +110,38 @@ namespace Wyld.Test
                 if (lastObj.Effect != null)
                     throw new Exception("Got Effect inside eval test");
             }
+        }
+        
+        private object[] EvalPauseStream(string s)
+        {
+            Result<object> lastObj = default;
+            var reader = new LispReader(new LineNumberingReader(new MemoryStream(Encoding.UTF8.GetBytes(s))));
+            var compiler = new Compiler2();
+
+            var results = new List<object>();
+            
+            
+            while (true)
+            {
+                var form = reader.ReadOne();
+                if (form == null)
+                {
+                    results.Add(lastObj.Value);
+                    return results.ToArray();
+                }
+
+                lastObj = compiler.Compile(form).Invoke();
+                TOP:
+                if (lastObj.Effect != null)
+                {
+                    //if (!ReferenceEquals(lastObj.Effect.FlagValue, KW.Pause))
+                    //    throw new Exception($"Got unexpected effect {lastObj.Effect.FlagValue}");
+                    results.Add(lastObj.Effect);
+                    lastObj = Runtime.ResumeWith<object>(lastObj.Effect, lastObj.Effect.Data!);
+                    goto TOP;
+                }
+            }
+
         }
     }
 }
