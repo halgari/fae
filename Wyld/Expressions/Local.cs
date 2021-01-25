@@ -30,9 +30,15 @@ namespace Wyld.Expressions
         public void EmitBind(WriterState state)
         {
             if (state.EmittingInvokeK && state.LocalRemaps.TryGetValue(this, out var remap))
-                throw new Exception("Can't remap a previously unbound K in a InvokeK");
-            _iLLocal = state.IL.DeclareLocal(Type, Name);
-            state.IL.Stloc(_iLLocal);
+            {
+                _iLLocal = remap;
+                //throw new Exception("Can't remap a previously unbound K in a InvokeK");
+            }
+            else
+            {
+                _iLLocal = state.IL.DeclareLocal(Type, Name);
+                state.IL.Stloc(_iLLocal);
+            }
         }
     }
 }

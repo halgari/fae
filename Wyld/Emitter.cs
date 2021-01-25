@@ -54,8 +54,8 @@ namespace Wyld
                 expr.Emit(ws);
                 EmitWrapInResult(ws, expr.Type);
                 il.Ret();
-                ws.EmitKBuilders();
-                EmitInvokeK(ws, expr, Array.Empty<Parameter>());
+                ws.EmitKBuilders(Array.Empty<ILocal>());
+                EmitInvokeK(ws, expr, Array.Empty<ILocal>());
             }
             _typeBuilder.DefineMethodOverride(mb, typeof(IInvokableArity<object>).GetMethod("Invoke")!);
 
@@ -100,7 +100,7 @@ namespace Wyld
             
         }
 
-        public void EmitLambda(Lambda lambda, WriterState parentWriter)
+        public Action<WriterState> EmitLambda(Lambda lambda, WriterState parentWriter)
         {
             _typeBuilder = _moduleBuilder.DefineType(lambda.Name, TypeAttributes.Class | TypeAttributes.Sealed | TypeAttributes.Public);
             _staticConstructor = _typeBuilder.DefineConstructor(MethodAttributes.Static, CallingConventions.Standard, Array.Empty<Type>());
@@ -118,15 +118,14 @@ namespace Wyld
                 using (var il = new GroboIL(mb))
                 {
                     var state = new WriterState(il, this, arity.Body.Type);
-                    state.PushLocals(arity.Parameters.OfType<ILocal>().ToArray());
                     state.InvokeK = SetupK(mb.ReturnType);
                     arity.Body.Emit(state);
                     EmitWrapInResult(state, arity.Body.Type);
                     il.Ret();
-                    state.PopLocals(arity.Parameters.Length);
-                    state.EmitKBuilders();
+                    var parameters = arity.Parameters.Concat(UsedFreeVars.OfType<ILocal>()).ToArray();
+                    state.EmitKBuilders(parameters);
 
-                    EmitInvokeK(state, arity.Body, arity.Parameters);
+                    EmitInvokeK(state, arity.Body, parameters);
                     
                 }
                 _typeBuilder.DefineMethodOverride(mb, arity.Type.GetMethod("Invoke")!);
@@ -134,20 +133,24 @@ namespace Wyld
             _staticConstructorIL.Ret();
             
             var ctor = _typeBuilder.DefineDefaultConstructor(MethodAttributes.Public);
-
-            var tp =_typeBuilder.CreateType();
-            parentWriter.IL.Newobj(ctor);
+            var tp = _typeBuilder.CreateType();
             
-            foreach (var freeVar in UsedFreeVars)
+            return (wtr) =>
             {
-                parentWriter.IL.Dup();
-                freeVar.Source.Emit(parentWriter);
-                parentWriter.IL.Stfld(freeVar.FieldInfo);
-            }
+
+                wtr.IL.Newobj(ctor);
+
+                foreach (var freeVar in UsedFreeVars)
+                {
+                    wtr.IL.Dup();
+                    freeVar.Source.Emit(wtr);
+                    wtr.IL.Stfld(freeVar.FieldInfo);
+                }
+            };
 
         }
 
-        private void EmitInvokeK(WriterState mainState, IExpression arityBody, Parameter[] parameters)
+        private void EmitInvokeK(WriterState mainState, IExpression arityBody, ILocal[] parameters)
         {
 
             using var ik = new GroboIL(mainState.InvokeK);
@@ -182,6 +185,15 @@ namespace Wyld
                 ik.Stloc(ct);
 
                 var itmIdx = 0;
+                foreach (var param in parameters)
+                {
+                    ik.Ldloc(ct);
+                    ik.Ldfld(kb.StateTupleType.GetField("Item" + itmIdx));
+                    var nloc = ikstate.MakeLocalRemap(param);
+                    ik.Stloc(nloc);
+                    itmIdx++;
+                }
+                
                 foreach (var local in kb.Locals)
                 {
                     ik.Ldloc(ct);
@@ -207,17 +219,13 @@ namespace Wyld
             }
 
             ikstate.Resumes = mainState.KBuilders.ToDictionary(b => b.Key);
-            // Push the args so they get properly tracked by the builders inside the InvokeK
-            ikstate.PushLocals(parameters.OfType<ILocal>().ToArray());
             arityBody.Emit(ikstate);
             ConvertStackItem(ik, arityBody.Type, typeof(object));
             EmitWrapInResult(ikstate, typeof(object));
             ik.Ret();
             
 
-            ikstate.EmitKBuilders();
-            
-
+            ikstate.EmitKBuilders(parameters);
         }
 
         private void ConvertStackItem(GroboIL ik, Type from, Type to)

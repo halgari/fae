@@ -23,6 +23,13 @@ namespace Wyld.Expressions
         public void Emit(WriterState state)
         {
             InUse = true;
+            if (state.EmittingInvokeK && state.LocalRemaps.TryGetValue(this, out var newloc))
+            {
+                state.IL.Ldloc(newloc);
+                return;
+            }
+
+
             state.IL.Ldarg(0);
             var field = state.Emitter.GetFreeVariableField(this);
             state.IL.Ldfld(field);

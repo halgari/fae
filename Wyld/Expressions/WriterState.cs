@@ -185,7 +185,7 @@ namespace Wyld.Expressions
         public MethodBuilder InvokeK { get; set; }
         public bool EmittingInvokeK { get; set; }
 
-        public void EmitKBuilders()
+        public void EmitKBuilders(ILocal[] parameters)
         {
             foreach (var (b, idx) in KBuilders.Select(((builder, i) => (builder, i) )))
             {
@@ -197,7 +197,10 @@ namespace Wyld.Expressions
                     IL.Stloc(itm.Local);
                 }
 
-                var slots = b.Locals.Select(l => l.Type).Concat(stlocals.Select(t => t.Type)).ToArray();
+                var slots = parameters.Select(p => p.Type)
+                    .Concat(b.Locals.Select(l => l.Type))
+                    .Concat(stlocals.Select(t => t.Type))
+                    .ToArray();
                 var stateTuple = KStates.KState(slots.Length);
 
                 if (slots.Length > 0)
@@ -210,6 +213,15 @@ namespace Wyld.Expressions
                 IL.Stfld(stateTuple.GetField("StateIdx"));
 
                 int itmIdx = 0;
+                
+                foreach (var local in parameters)
+                {
+                    IL.Dup();
+                    local.Emit(this);
+                    IL.Stfld(stateTuple.GetField("Item"+itmIdx));
+                    itmIdx++;
+                }
+                
                 foreach (var local in b.Locals)
                 {
                     IL.Dup();

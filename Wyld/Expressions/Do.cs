@@ -15,11 +15,15 @@ namespace Wyld.Expressions
 
         public void Emit(WriterState state)
         {
-            foreach (var expr in Body.SkipLast(1))
+            using (var _ = state.WithTailCallFlag(false))
             {
-                expr.Emit(state);
-                state.IL.Pop();
+                foreach (var expr in Body.SkipLast(1))
+                {
+                    expr.Emit(state);
+                    state.IL.Pop();
+                }
             }
+
             Body.Last().Emit(state);
         }
 

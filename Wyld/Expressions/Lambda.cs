@@ -25,14 +25,22 @@ namespace Wyld.Expressions
         }
 
         public string Name { get; }
+        public Action<WriterState>? LambdaConstructor { get; set; }
 
         public void Emit(WriterState state)
         {
-            var emitter = new Emitter();
-            emitter.EmitLambda(this, state);
+            if (LambdaConstructor == null)
+            {
+                var emitter = new Emitter();
+                LambdaConstructor = emitter.EmitLambda(this, state);
+            }
+
+            LambdaConstructor(state);
             state.IL.Castclass(Type);
             
         }
+
+
 
         public Type Type { get; }
     }
