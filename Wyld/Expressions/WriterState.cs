@@ -22,6 +22,7 @@ namespace Wyld.Expressions
 
         private ImmutableStack<bool> _tailCallFlags;
         private ImmutableStack<Type> _evaluationStack = ImmutableStack<Type>.Empty;
+        private ImmutableStack<ILocal> _locals = ImmutableStack<ILocal>.Empty;
 
         public IDisposable WithTailCallFlag(bool flag)
         {
@@ -88,6 +89,16 @@ namespace Wyld.Expressions
 
         public List<KBuilder> KBuilders = new();
         public Dictionary<IExpression, KBuilder> Resumes = new();
+        public Dictionary<ILocal, GroboIL.Local> LocalRemaps = new();
+
+        public GroboIL.Local MakeLocalRemap(ILocal local)
+        {
+            if (LocalRemaps.TryGetValue(local, out var found))
+                return found;
+            var nlocal = IL.DeclareLocal(local.Type, local.Name);
+            LocalRemaps.Add(local, nlocal);
+            return nlocal;
+        }
 
         private void MarkKBuilder(GroboIL.Local result, GroboIL.Label lbl, FieldInfo field, Type resultValueType, IExpression key)
         {
@@ -96,6 +107,7 @@ namespace Wyld.Expressions
                 ResultLocal = result,
                 BuilderLabel = lbl,
                 EffectField = field,
+                Locals = _locals.ToArray(),
                 EvalStack = EvalStack.ToArray(),
                 FinalResultType = FinalResultType,
                 LocalResultType = resultValueType,
@@ -134,6 +146,7 @@ namespace Wyld.Expressions
             public GroboIL.Label ResumeLabel;
             public IExpression Key;
             public Type LocalResultType;
+            public ILocal[] Locals;
         }
 
         public void EmitEvalArgs(IExpression[] args)
@@ -144,6 +157,17 @@ namespace Wyld.Expressions
                 arg.Emit(this);
                 _evaluationStack = _evaluationStack.Push(arg.Type);
             }
+        }
+
+        public void PushLocals(params ILocal[] locals)
+        {
+            _locals = locals.Aggregate(_locals, (stack, local) => stack.Push(local));
+        }
+
+        public void PopLocals(int num = 1)
+        {
+            for (var x = 0; x < num; x++)
+                _locals = _locals.Pop();
         }
 
         public void PushToEvalStack(Type tp)
@@ -173,10 +197,11 @@ namespace Wyld.Expressions
                     IL.Stloc(itm.Local);
                 }
 
-                var stateTuple = KStates.KState(stlocals.Length);
+                var slots = b.Locals.Select(l => l.Type).Concat(stlocals.Select(t => t.Type)).ToArray();
+                var stateTuple = KStates.KState(slots.Length);
 
-                if (stlocals.Length > 0)
-                    stateTuple = stateTuple.MakeGenericType(stlocals.Select(t => t.Type).ToArray());
+                if (slots.Length > 0)
+                    stateTuple = stateTuple.MakeGenericType(slots);
                 b.StateTupleType = stateTuple;
 
                 IL.Newobj(stateTuple.GetConstructor(Array.Empty<Type>()));
@@ -184,24 +209,41 @@ namespace Wyld.Expressions
                 IL.Ldc_I4(idx);
                 IL.Stfld(stateTuple.GetField("StateIdx"));
 
+                int itmIdx = 0;
+                foreach (var local in b.Locals)
+                {
+                    IL.Dup();
+                    local.Emit(this);
+                    IL.Stfld(stateTuple.GetField("Item"+itmIdx));
+                    itmIdx++;
+                }
+
                 foreach (var local in stlocals)
                 {
                     IL.Dup();
                     IL.Ldloc(local.Local);
-                    IL.Stfld(stateTuple.GetField("Item"+local.Idx));
+                    IL.Stfld(stateTuple.GetField("Item"+itmIdx));
+                    itmIdx++;
                 }
                 
                 
                 IL.Ldnull();
                 IL.Ldftn(InvokeK);
-                var resType = typeof(Result<>).MakeGenericType(b.FinalResultType);
-                var ftemplate = typeof(Func<,,>).MakeGenericType(typeof(object), typeof(object), resType);
+                var ftemplate = typeof(Func<object,object,Result<object>>);
                 var ctor = (ftemplate.GetConstructor(new[] {typeof(object), typeof(IntPtr)}));
                 IL.Newobj(ctor);
                 IL.Ldloca(b.ResultLocal);
 
                 IL.Ldfld(b.EffectField);
-                IL.Call(typeof(Runtime).GetMethod("BuildK")!.MakeGenericMethod(b.FinalResultType));
+                if (EmittingInvokeK)
+                {
+                    IL.Call(typeof(Runtime).GetMethod("BuildK")!.MakeGenericMethod(typeof(object)));
+                }
+                else
+                {
+                    IL.Call(typeof(Runtime).GetMethod("BuildK")!.MakeGenericMethod(b.FinalResultType));
+
+                }
                 IL.Ret();
             }
         }

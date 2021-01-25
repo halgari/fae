@@ -83,15 +83,55 @@ namespace Wyld.Test
         [Fact]
         public void CanRaiseEffects()
         {
-            Assert.Equal(new object[] {42}, 
+            Assert.Equal(new object[] {41, 41, 42}, 
                 EvalPauseStream(@"
-                     (defn pause ^int [^int x]
-                        (^int sys/raise :pause x))
-
                      (defn inc ^int [^int x]
                         (sys/+ (pause x) 1))
                       
                      (let [x (inc 41)] (sys/+ 1 (pause x)))"));
+        }
+
+        [Fact]
+        public void CanUseEffectInTopLevel()
+        {
+            Assert.Equal(new object[] {1, 1},
+                EvalPauseStream(@"(pause 1)"));
+        }
+        
+        [Fact]
+        public void CanCompileSimpleClosure()
+        {
+            Assert.Equal(1,
+                Eval(@"(let [x 1]
+                                ((fn ^int [] x)))"));
+        }
+
+        [Fact]
+        public void CanCompileASimpleLet()
+        {
+            Assert.Equal(1, Eval("(let [x 1] x)"));
+        }
+        
+        [Fact]
+        public void CanCompileASimpleLetWithEffect()
+        {
+            Assert.Equal(new object[] {1, 1}, EvalPauseStream("(let [x 1] (pause x))"));
+        }
+        
+        [Fact]
+        public void CanUseEffectInAddition()
+        {
+            Assert.Equal(new object[] {1, 2, 3},
+                EvalPauseStream(@"(sys/+ (pause 1) (pause 2))"));
+        }
+        
+        [Fact]
+        public void CanUseArgumentsAfterEffectContinuation()
+        {
+            Assert.Equal(new object[] {1, 2, 3},
+                EvalPauseStream(@"(defn add ^int [^int x ^int y]
+                                            (sys/+ (pause x) (pause y)))
+                                         (add 1 2)"));
         }
 
         private object Eval(string s)
@@ -114,6 +154,9 @@ namespace Wyld.Test
         
         private object[] EvalPauseStream(string s)
         {
+            s = @"(defn pause ^int [^int x]
+                        (^int sys/raise :pause x))
+                 " + s;
             Result<object> lastObj = default;
             var reader = new LispReader(new LineNumberingReader(new MemoryStream(Encoding.UTF8.GetBytes(s))));
             var compiler = new Compiler2();
@@ -136,8 +179,8 @@ namespace Wyld.Test
                 {
                     //if (!ReferenceEquals(lastObj.Effect.FlagValue, KW.Pause))
                     //    throw new Exception($"Got unexpected effect {lastObj.Effect.FlagValue}");
-                    results.Add(lastObj.Effect);
-                    lastObj = Runtime.ResumeWith<object>(lastObj.Effect, lastObj.Effect.Data!);
+                    results.Add(lastObj.Effect.Data);
+                    lastObj = Runtime.ResumeWith(lastObj.Effect, lastObj.Effect.Data!);
                     goto TOP;
                 }
             }

@@ -17,7 +17,10 @@ namespace Wyld.Expressions
 
         public void Emit(WriterState state)
         {
-            state.IL.Ldarg(Idx + 1);
+            if (state.EmittingInvokeK && state.LocalRemaps.TryGetValue(this, out var newloc))
+                state.IL.Ldloc(newloc);
+            else 
+                state.IL.Ldarg(Idx + 1);
         }
 
         public Type Type { get; }

@@ -8,6 +8,7 @@
 
         public override void Emit(WriterState state)
         {
+            using var _ = state.WithTailCallFlag(false);
             A.Emit(state);
             state.PushToEvalStack(A.Type);
             B.Emit(state);

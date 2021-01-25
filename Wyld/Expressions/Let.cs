@@ -25,7 +25,9 @@ namespace Wyld.Expressions
                 Local.EmitBind(state);
             }
 
+            state.PushLocals(Local);
             Body.Emit(state);
+            state.PopLocals();
         }
 
         public Type Type { get; }

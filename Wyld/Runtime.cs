@@ -12,7 +12,7 @@ namespace Wyld
                 FlagValue = flag,
                 KState = null,
                 Data = data,
-                K = (Func<object?, object?, Result<T>>) Identity<T>
+                K = (Func<object?, object?, Result<object>>) Identity<object>
             };
             return new Result<T> {Effect = effect};
         }
@@ -22,7 +22,7 @@ namespace Wyld
             return new() {Value = (T) val!};
         }
 
-        public static Result<T> BuildK<T>(object data, Func<object?, object?, Result<T>> fn, Effect parent)
+        public static Result<T> BuildK<T>(object data, Func<object?, object?, Result<object>> fn, Effect parent)
         {
             var result = new Result<T>
             {
@@ -44,15 +44,15 @@ namespace Wyld
 
         }
 
-        public static Result<T> ResumeWith<T>(Effect eff, object resumeData)
+        public static Result<object> ResumeWith(Effect eff, object resumeData)
         {
             if (eff.Parent == null)
-                return ((Func<object?, object?, Result<T>>) eff.K)(eff.KState, resumeData);
+                return ((Func<object?, object?, Result<object>>) eff.K)(eff.KState, resumeData);
 
-            var result = ResumeWith<T>(eff.Parent, resumeData);
+            var result = ResumeWith(eff.Parent, resumeData);
             if (result.Effect != null)
             {
-                return new Result<T>
+                return new Result<object>
                 {
                     Effect = new Effect
                     {
@@ -64,7 +64,7 @@ namespace Wyld
                     }
                 };
             }
-            return ((Func<object?, object?, Result<T>>) eff.K)(eff.KState, result.Value); 
+            return ((Func<object?, object?, Result<object>>) eff.K)(eff.KState, result.Value); 
             
         }
         

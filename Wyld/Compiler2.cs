@@ -82,7 +82,7 @@ namespace Wyld
             }
             
             var fn = CompileForm(head);
-            var args = cons.Tail!.Select(CompileForm).ToArray();
+            var args = cons.Tail?.Select(CompileForm).ToArray() ?? Array.Empty<IExpression>();
             return Expression.Invoke(fn, args);
         }
 
