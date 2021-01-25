@@ -83,7 +83,7 @@ namespace Wyld.Test
         [Fact]
         public void CanRaiseEffects()
         {
-            Assert.Equal(new object[] {41, 41, 42}, 
+            Assert.Equal(new object[] {41, 42, 43}, 
                 EvalPauseStream(@"
                      (defn inc ^int [^int x]
                         (sys/+ (pause x) 1))
@@ -110,6 +110,24 @@ namespace Wyld.Test
         public void CanCompileASimpleLet()
         {
             Assert.Equal(1, Eval("(let [x 1] x)"));
+        }
+        
+        [Fact]
+        public void CanPauseInLetBinding()
+        {
+            Assert.Equal(new object[] {1, 1}, EvalPauseStream("(let [x (pause 1)] x)"));
+        }
+        
+        [Fact]
+        public void CanPauseInLetBody()
+        {
+            Assert.Equal(new object[] {1, 1}, EvalPauseStream("(let [x 1] (pause x))"));
+        }
+        
+        [Fact]
+        public void CanPauseInLetBindingAndBody()
+        {
+            Assert.Equal(new object[] {1, 1, 1}, EvalPauseStream("(let [x (pause 1)] (pause x))"));
         }
         
         [Fact]

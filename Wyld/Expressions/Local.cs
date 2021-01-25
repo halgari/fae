@@ -37,8 +37,8 @@ namespace Wyld.Expressions
             else
             {
                 _iLLocal = state.IL.DeclareLocal(Type, Name);
-                state.IL.Stloc(_iLLocal);
             }
+            state.IL.Stloc(_iLLocal);
         }
     }
 }

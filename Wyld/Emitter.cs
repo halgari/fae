@@ -249,7 +249,7 @@ namespace Wyld
             if (_nonNativeConstants.TryGetValue(box, out var result))
                 return result;
 
-            var nm = "const_box_" + _nonNativeConstants.Count;
+            var nm = "const_box_" + box.Name + _nonNativeConstants.Count;
             var fi = _typeBuilder.DefineField(nm, box.GetType(), FieldAttributes.Static | FieldAttributes.Private);
             _nonNativeConstants.Add(box, fi);
             
