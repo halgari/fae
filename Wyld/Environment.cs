@@ -27,7 +27,10 @@ namespace Wyld
         {
             return Globals.TryGetValue(sym, out box);
         }
-
-
+        
+        public static void Reset()
+        {
+            Globals.Clear();
+        }
     }
 }

@@ -73,6 +73,20 @@ namespace Wyld.Test
                                  (count-up (sys/+ x 1) max)))
                            (count-up 0 1000000)"));
         }
+        
+        /// <summary>
+        /// Exercises tail calls, defn, and recursive functions
+        /// </summary>
+        [Fact]
+        public void CanCompileCountUpWithEffect()
+        {
+            Assert.Equal(new object[]{0},
+                EvalPauseStream(@"(defn count-up ^int [^int x ^int max] 
+                             (if (sys/= (pause x) max) 
+                                 x 
+                                 (count-up (sys/+ x 1) max)))
+                           (count-up 0 1000000)"));
+        }
 
         [Fact]
         public void CanReadProperties()
@@ -89,6 +103,44 @@ namespace Wyld.Test
                         (sys/+ (pause x) 1))
                       
                      (let [x (inc 41)] (sys/+ 1 (pause x)))"));
+        }
+        
+        [Fact]
+        public void CanRaiseEffectsWithTailCall()
+        {
+            Assert.Equal(new object[] {1, 1}, 
+                EvalPauseStream(@"
+                     (defn foo ^int [^int x]
+                        (pause x))
+
+                     (defn bar ^int [^int x]
+                        (foo x))
+                      
+                     (bar 1)"));
+        }
+        
+        [Fact]
+        public void CanRaiseEffectsInIfBranch()
+        {
+            Assert.Equal(new object[] {1, 1}, 
+                EvalPauseStream(@"
+                     (if (sys/= 1 (pause 1)) 1 2)"));
+        }
+        
+        [Fact]
+        public void CanRaiseEffectsInIfThen()
+        {
+            Assert.Equal(new object[] {2, 2}, 
+                EvalPauseStream(@"
+                     (if (sys/= 0 1) 1 (pause 2))"));
+        }
+        
+        [Fact]
+        public void CanRaiseEffectsInIfElse()
+        {
+            Assert.Equal(new object[] {1, 1}, 
+                EvalPauseStream(@"
+                     (if (sys/= 1 1) (pause 1) 2)"));
         }
 
         [Fact]
@@ -172,6 +224,7 @@ namespace Wyld.Test
         
         private object[] EvalPauseStream(string s)
         {
+            Environment.Reset();
             s = @"(defn pause ^int [^int x]
                         (^int sys/raise :pause x))
                  " + s;
