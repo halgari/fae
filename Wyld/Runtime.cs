@@ -44,31 +44,5 @@ namespace Wyld
 
         }
 
-        public static Result<object> ResumeWith(Effect eff, object resumeData)
-        {
-            if (eff.Parent == null)
-                return ((Func<object?, object?, Result<object>>) eff.K)(eff.KState, resumeData);
-
-            var result = ResumeWith(eff.Parent, resumeData);
-            if (result.Effect != null)
-            {
-                return new Result<object>
-                {
-                    Effect = new Effect
-                    {
-                        Parent = result.Effect,
-                        FlagValue = result.Effect.FlagValue,
-                        KState = eff.KState,
-                        Data = result.Effect.Data,
-                        K = eff.K,
-                    }
-                };
-            }
-
-            dynamic obj = eff.K;
-            return ((Func<object?, object?, Result<object>>) eff.K)(eff.KState, result.Value); 
-            
-        }
-        
     }
 }
