@@ -11,7 +11,14 @@ namespace Wyld
         public T Value;
         public Effect? Effect;
     }
-    
+
+    public struct EffectState
+    {
+        public object Flag;
+        public object Data;
+        public object K;
+    }
+
     public class Effect
     {
         /// <summary>

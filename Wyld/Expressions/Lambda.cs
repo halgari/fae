@@ -43,6 +43,7 @@ namespace Wyld.Expressions
 
 
         public Type Type { get; }
+        public This ThisParam { get; set; }
     }
 
     public class Arity

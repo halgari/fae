@@ -12,17 +12,17 @@ namespace Wyld
                 FlagValue = flag,
                 KState = null,
                 Data = data,
-                K = (Func<object?, object?, Result<object>>) Identity<object>
+                K = (Func<Effect?, object?, Result<T>>) Identity<T>
             };
             return new Result<T> {Effect = effect};
         }
 
-        private static Result<T> Identity<T>(object? state, object? val)
+        private static Result<T> Identity<T>(Effect? state, object? val)
         {
             return new() {Value = (T) val!};
         }
 
-        public static Result<T> BuildK<T>(object data, Func<object?, object?, Result<object>> fn, Effect parent)
+        public static Result<T> BuildK<T>(object kstate, object fn, Effect parent)
         {
             var result = new Result<T>
             {
@@ -31,7 +31,7 @@ namespace Wyld
                     Parent = parent,
                     FlagValue = parent?.FlagValue,
                     Data = parent?.Data,
-                    KState = data,
+                    KState = kstate,
                     K = fn
                 }
             };
@@ -64,6 +64,8 @@ namespace Wyld
                     }
                 };
             }
+
+            dynamic obj = eff.K;
             return ((Func<object?, object?, Result<object>>) eff.K)(eff.KState, result.Value); 
             
         }

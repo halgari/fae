@@ -67,8 +67,8 @@ namespace Wyld
 
         private MethodBuilder SetupK(Type returnType)
         {
-            var mi = _typeBuilder.DefineMethod("InvokeK", MethodAttributes.Public | MethodAttributes.Static, typeof(Result<object>),
-                new[] {typeof(object), typeof(object)});
+            var mi = _typeBuilder.DefineMethod("InvokeK", MethodAttributes.Public | MethodAttributes.Static, returnType,
+                new[] {typeof(Effect), typeof(object)});
 
             
             
@@ -122,7 +122,10 @@ namespace Wyld
                     arity.Body.Emit(state);
                     EmitWrapInResult(state, arity.Body.Type);
                     il.Ret();
-                    var parameters = arity.Parameters.Concat(UsedFreeVars.OfType<ILocal>()).ToArray();
+                    var parameters = arity.Parameters
+                        .Concat(UsedFreeVars.OfType<ILocal>())
+                        .Concat(new [] {(Parameter)lambda.ThisParam})
+                        .ToArray();
                     state.EmitKBuilders(parameters);
 
                     EmitInvokeK(state, arity.Body, parameters);
@@ -171,15 +174,81 @@ namespace Wyld
             }
             
             ik.Ldarg(0);
+            ik.Ldfld(Consts.EffectKStateField);
             ik.Castclass(typeof(KState));
             ik.Ldfld(typeof(KState).GetField("StateIdx"));
             ik.Switch(mainState.KBuilders.Select(b => b.UnpackLabel).ToArray());
+            
 
             // Emit unpacking blocks
             foreach (var kb in mainState.KBuilders)
             {
                 ik.MarkLabel(kb.UnpackLabel);
+                
+                // Check if a parent exists
                 ik.Ldarg(0);
+                ik.Ldfld(Consts.EffectParentField);
+                ik.Ldnull();
+
+                var nullParent = ik.DefineLabel("null_parent"); // Resume execution ->>
+                ik.Beq(nullParent);
+                
+                // Call the parent
+                
+                ik.Ldarg(0);
+                ik.Ldfld(Consts.EffectParentField);
+                ik.Ldfld(Consts.EffectKField);
+                ik.Castclass(kb.LocalResultResumeType);
+                
+                ik.Ldarg(0);
+                ik.Ldfld(Consts.EffectParentField);
+                
+                ik.Ldarg(1);
+                
+                ik.Call(kb.LocalResultResumeMethod);
+
+                var resumeLocalTmp = ik.DeclareLocal(kb.LocalResultResultType, "resumeTmp");
+                ik.Stloc(resumeLocalTmp);
+                ik.Ldloca(resumeLocalTmp);
+                
+                ik.Ldfld(kb.LocalResultResultEffectField);
+                ik.Ldnull();
+
+                var parentGaveValue = ik.DefineLabel("parent_gave_value");
+                ik.Beq(parentGaveValue);
+                
+                ik.Ldarg(0);
+                ik.Ldfld(Consts.EffectKStateField);
+                
+                ik.Ldarg(0);
+                ik.Ldfld(Consts.EffectKField);
+                
+                ik.Ldloca(resumeLocalTmp);
+                ik.Ldfld(kb.LocalResultResultEffectField);
+                
+                
+                ik.Call(typeof(Runtime).GetMethod("BuildK")!.MakeGenericMethod(kb.FinalResultType));
+                ik.Ret();
+                
+                ik.MarkLabel(parentGaveValue);
+                
+                ik.Ldloca(resumeLocalTmp);
+                ik.Ldfld(kb.LocalResultResultValueField);
+                var castedResultValue = ik.DeclareLocal(kb.LocalResultType, "castedLocalResult");
+                ik.Stloc(castedResultValue);
+                
+                var valueUnwrapped = ik.DefineLabel("value_unwrapped");
+                ik.Br(valueUnwrapped);
+                
+
+                ik.MarkLabel(nullParent);
+                ik.Ldarg(1);
+                ConvertStackItem(ik, typeof(object),kb.LocalResultType);
+                ik.Stloc(castedResultValue);
+                
+                ik.MarkLabel(valueUnwrapped);
+                ik.Ldarg(0);
+                ik.Ldfld(Consts.EffectKStateField);
                 var ct = ik.DeclareLocal(kb.StateTupleType, "castedtuple");
                 ik.Castclass(kb.StateTupleType);
                 ik.Stloc(ct);
@@ -213,15 +282,13 @@ namespace Wyld
                 }
 
                 kb.ResumeLabel = ik.DefineLabel("resume");
-                ik.Ldarg(1);
-                ConvertStackItem(ik, typeof(object), kb.LocalResultType);
+                ik.Ldloc(castedResultValue);
                 ik.Br(kb.ResumeLabel);
             }
 
             ikstate.Resumes = mainState.KBuilders.ToDictionary(b => b.Key);
             arityBody.Emit(ikstate);
-            ConvertStackItem(ik, arityBody.Type, typeof(object));
-            EmitWrapInResult(ikstate, typeof(object));
+            EmitWrapInResult(ikstate, mainState.FinalResultType);
             ik.Ret();
             
 

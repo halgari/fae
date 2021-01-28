@@ -164,6 +164,7 @@ namespace Wyld
             var carities = new List<Arity>();
 
             using var _l_ = WithLocals(_locals.Peek().Select(l => (ILocal)Expression.FreeVariable(l.Value)).ToArray());
+            var thisParam = Expression.This(fnName.Name, fnType);
             foreach (var (args, body) in arities)
             {
                 var retType = TypeFromSymbol(args.Meta[KW.Type]);
@@ -172,13 +173,14 @@ namespace Wyld
                     var sym = (Symbol) a;
                     return Expression.Parameter(sym.Name, TypeFromSymbol(sym.Meta[KW.Type]), idx);
                 }).ToArray();
-                using var _this = WithLocals(Expression.This(fnName.Name, fnType));
+                using var _this = WithLocals(thisParam);
                 using var _ = WithLocals(param);
                 var expr = CompileDo(body.ToArray());
                 carities.Add(new Arity(param, expr));
             }
 
             var lambda = Expression.Lambda(fnName.Name, carities.ToArray());
+            lambda.ThisParam = thisParam;
             return lambda;
         }
         

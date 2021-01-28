@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using Xunit;
@@ -80,12 +81,15 @@ namespace Wyld.Test
         [Fact]
         public void CanCompileCountUpWithEffect()
         {
-            Assert.Equal(new object[]{0},
+            Assert.Equal(Enumerable.Range(0, 100000 + 1)
+                    .Concat(new []{100000})
+                    .Select(i => (object)i)
+                    .ToArray(),
                 EvalPauseStream(@"(defn count-up ^int [^int x ^int max] 
                              (if (sys/= (pause x) max) 
                                  x 
                                  (count-up (sys/+ x 1) max)))
-                           (count-up 0 1000000)"));
+                           (count-up 0 100000)"));
         }
 
         [Fact]
@@ -103,6 +107,13 @@ namespace Wyld.Test
                         (sys/+ (pause x) 1))
                       
                      (let [x (inc 41)] (sys/+ 1 (pause x)))"));
+        }
+
+        [Fact]
+        public void CanRaiseSimplestEffect()
+        {
+            Assert.Equal(new object[] {1, 1},
+                EvalPauseStream("(^int sys/raise :pause 1)"));
         }
         
         [Fact]
@@ -251,7 +262,8 @@ namespace Wyld.Test
                     //if (!ReferenceEquals(lastObj.Effect.FlagValue, KW.Pause))
                     //    throw new Exception($"Got unexpected effect {lastObj.Effect.FlagValue}");
                     results.Add(lastObj.Effect.Data);
-                    lastObj = Runtime.ResumeWith(lastObj.Effect, lastObj.Effect.Data!);
+                    var eff = lastObj.Effect;
+                    lastObj = ((Func<object, object, Result<object>>)eff.K)(eff, eff.Data);
                     goto TOP;
                 }
             }

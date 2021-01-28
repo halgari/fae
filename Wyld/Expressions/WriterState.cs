@@ -111,6 +111,7 @@ namespace Wyld.Expressions
                 EvalStack = EvalStack.ToArray(),
                 FinalResultType = FinalResultType,
                 LocalResultType = resultValueType,
+                LocalResultResultType = typeof(Result<>).MakeGenericType(resultValueType),
                 Key = key
             });
         }
@@ -147,6 +148,18 @@ namespace Wyld.Expressions
             public IExpression Key;
             public Type LocalResultType;
             public ILocal[] Locals;
+            public Type LocalResultResultType;
+
+
+            public Type LocalResultResumeType =>
+                typeof(Func<,,>).MakeGenericType(typeof(Effect), typeof(object), LocalResultResultType);
+
+            public MethodInfo LocalResultResumeMethod =>
+                LocalResultResumeType.GetMethod("Invoke", new[] {typeof(Effect), typeof(object)})!;
+
+            public FieldInfo LocalResultResultEffectField => LocalResultResultType.GetField("Effect")!;
+            public FieldInfo LocalResultResultValueField => LocalResultResultType.GetField("Value")!;
+            public Type FinalResultResultType => typeof(Result<>).MakeGenericType(FinalResultType);
         }
 
         public void EmitEvalArgs(IExpression[] args)
@@ -241,21 +254,14 @@ namespace Wyld.Expressions
                 
                 IL.Ldnull();
                 IL.Ldftn(InvokeK);
-                var ftemplate = typeof(Func<object,object,Result<object>>);
+                var ftemplate = typeof(Func<,,>).MakeGenericType(typeof(object), typeof(object), b.FinalResultResultType);
                 var ctor = (ftemplate.GetConstructor(new[] {typeof(object), typeof(IntPtr)}));
                 IL.Newobj(ctor);
                 IL.Ldloca(b.ResultLocal);
 
                 IL.Ldfld(b.EffectField);
-                if (EmittingInvokeK)
-                {
-                    IL.Call(typeof(Runtime).GetMethod("BuildK")!.MakeGenericMethod(typeof(object)));
-                }
-                else
-                {
-                    IL.Call(typeof(Runtime).GetMethod("BuildK")!.MakeGenericMethod(b.FinalResultType));
+                IL.Call(typeof(Runtime).GetMethod("BuildK")!.MakeGenericMethod(b.FinalResultType));
 
-                }
                 IL.Ret();
             }
         }

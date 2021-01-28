@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Running;
+
+[module:SkipLocalsInit]
 
 namespace Fae.Benchmarks
 {
