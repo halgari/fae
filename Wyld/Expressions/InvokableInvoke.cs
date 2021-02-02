@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
@@ -10,8 +12,7 @@ namespace Wyld.Expressions
 
         public InvokableInvoke(IExpression fn, IExpression[] args) : base(fn, args)
         {
-            var invokingMethods = fn.Type.GetGenericArguments()
-                .SelectMany(t => t.GetMethods().Where(m => m.Name == "Invoke"))
+            var invokingMethods = InvokableMethodsFrom(fn.Type)
                 .Where(m => m.GetParameters().Length == args.Length)
                 .Where(m => m.GetParameters().Select(p => p.ParameterType).ToArray().SequenceEqual(args.Select(a => a.Type).ToArray()))
                 .ToArray();
@@ -25,6 +26,19 @@ namespace Wyld.Expressions
             DeclaringType = MethodInfo.DeclaringType!;
             Type = DeclaringType!.GetGenericArguments()[0];
 
+        }
+
+        public static IEnumerable<MethodInfo> InvokableMethodsFrom(Type tp)
+        {
+            if (tp.Name.StartsWith("IInvokableCombination`"))
+                return tp.GetGenericArguments()
+                    .SelectMany(t => t.GetMethods().Where(m => m.Name == "Invoke"));
+
+            return tp
+                .GetInterfaces()
+                .First(i => i.Name.StartsWith("IInvokableCombination`"))
+                .GetGenericArguments()
+                .SelectMany(t => t.GetMethods().Where(m => m.Name == "Invoke"));
         }
 
         public Type DeclaringType { get; }

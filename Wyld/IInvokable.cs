@@ -43,6 +43,41 @@ public static class Invokable
     }
 
 
+    public static Type Action(int itms) {
+        return itms switch {
+            0 => typeof(Action),
+        
+            1 => typeof(Action<>),
+
+            2 => typeof(Action<,>),
+
+            3 => typeof(Action<,,>),
+
+            4 => typeof(Action<,,,>),
+
+            5 => typeof(Action<,,,,>),
+
+            6 => typeof(Action<,,,,,>),
+
+            7 => typeof(Action<,,,,,,>),
+
+            8 => typeof(Action<,,,,,,,>),
+
+            9 => typeof(Action<,,,,,,,,>),
+
+            10 => typeof(Action<,,,,,,,,,>),
+
+            11 => typeof(Action<,,,,,,,,,,>),
+
+            12 => typeof(Action<,,,,,,,,,,,>),
+
+            13 => typeof(Action<,,,,,,,,,,,,>),
+            _ => throw new Exception($"Cannot create a Invokable of {itms} arguments")
+        };  
+
+    }
+
+
 }
 
 public interface IInvokableArity<TR> : IInvokable {

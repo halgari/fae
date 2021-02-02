@@ -10,4 +10,14 @@
       <PackageReference Include="BenchmarkDotNet" Version="0.12.1" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\Wyld\Wyld.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="Wyld, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+        <HintPath>..\Wyld.Test\bin\Debug\net5.0\Wyld.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
 </Project>

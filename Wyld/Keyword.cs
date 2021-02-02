@@ -37,6 +37,14 @@ namespace Wyld
 
         private static readonly ConcurrentDictionary<string, Keyword> _registry = new();
 
+        public class KeywordMetadata
+        {
+            public Keyword Keyword;
+            public Type Type;
+        }
+
+        public static readonly ConcurrentDictionary<Keyword, KeywordMetadata> MetadataRegistry = new();
+
         public static Keyword Intern(string name)
         {
             if (_registry.TryGetValue(name, out var found))

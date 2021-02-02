@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reflection;
+using Wyld.SystemFunctions;
 
 namespace Wyld.Expressions
 {
@@ -27,6 +28,10 @@ namespace Wyld.Expressions
             {
                 return new InvokableInvoke(fn, args);
             }
+            else if (fn.Type.IsAssignableTo(typeof(IDynamicDispatchFunction)))
+            {
+                return new DynamicCallSite(fn, args);
+            }
 
             throw new NotImplementedException();
         }
@@ -46,5 +51,7 @@ namespace Wyld.Expressions
 
         public static StaticMethodInvoke StaticMethod(MethodInfo method, params IExpression[] args) =>
             new(method, args);
+
+        public static MakeArray MakeArray(IExpression[] elements) => new(elements);
     }
 }

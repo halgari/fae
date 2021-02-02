@@ -78,7 +78,9 @@ namespace Wyld
             {'[', new VectorStructReader()},
             {']', new UnmatchedReader('[')},
             {'^', new TypeReader()},
-            {'"', new StringLiteralReader()}
+            {'"', new StringLiteralReader()},
+            {'{', new StructReader()},
+            {'}', new UnmatchedReader('{')}
         };
 
     private static HashSet<char> _whitespace = " \t\r\n,".ToHashSet();
@@ -93,6 +95,33 @@ namespace Wyld
             }
         }
         
+    }
+
+    public class StructReader : IReader
+    {
+        public object? Read(LispReader rdr, char start)
+        {
+            var vals = new List<object?>();
+            vals.Add(Symbol.Parse("wyld.system/new-struct"));
+            while (true)
+            {
+                rdr.EatWhitespace();
+
+                var pk = rdr.Rdr.PeekChar();
+                switch (pk)
+                {
+                    case null:
+                        throw new Exception("Found End of file before end of struct");
+                    case '}':
+                        rdr.Rdr.Read();
+                        return Cons.FromList(vals);
+                    default:
+                        vals.Add(rdr.ReadOne(true));
+                        vals.Add(rdr.ReadOne(true));
+                        break;
+                }
+            }
+        }
     }
 
     public class StringLiteralReader : IReader

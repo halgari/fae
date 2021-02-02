@@ -14,7 +14,7 @@ namespace Wyld
         private ImmutableStack<ImmutableDictionary<string, ILocal>> _locals;
         public ConcurrentDictionary<Symbol, object> Globals = new();
 
-        public ImmutableStack<string> Namespaces = ImmutableStack<string>.Empty.Push("scratch");
+        public ImmutableStack<Keyword> Namespaces = ImmutableStack<Keyword>.Empty.Push(Keyword.Intern("wyld.scratch"));
         
         public Compiler2()
         {
@@ -56,6 +56,9 @@ namespace Wyld
                     return Expression.Field(Expression.Constant(box, box.GetType()), box.GetType().GetField("Value")!);
                 }
             }
+
+            if (Environment.TryResolveBox(symbol, out var gbox))
+                return Expression.Field(Expression.Constant(gbox, gbox.GetType()), gbox.GetType().GetField("Value")!);;
 
             throw new Exception($"Undefined symbol: {symbol}");
         }
@@ -213,7 +216,18 @@ namespace Wyld
         {
             if (sym.Namespace == null)
             {
-                sym = Symbol.Intern(Namespaces.Peek(), sym.Name);
+                var globalSymbol = Symbol.Intern(Namespaces.Peek().Name, sym.Name);
+                if (Environment.TryResolveBox(globalSymbol, out _))
+                    return sym;
+
+                foreach (var usingVar in Environment.GetFullyInScope(Namespaces.Peek()))
+                {
+                    var inScopeSymbol = Symbol.Intern(usingVar.Name, sym.Name);
+                    if (Environment.TryResolveBox(inScopeSymbol, out _))
+                        return inScopeSymbol;
+                }
+
+                return globalSymbol;
             }
 
             return sym;

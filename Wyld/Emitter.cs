@@ -1,12 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Data;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
+using System.Threading;
 using GrEmit;
 using Wyld.Expressions;
+using Expression = Wyld.Expressions.Expression;
 
 namespace Wyld
 {
@@ -362,6 +367,29 @@ namespace Wyld
             _staticConstructorIL.Call(typeof(Keyword).GetMethod("Intern", new []{typeof(string), typeof(string)}));
             _staticConstructorIL.Stfld(fi);
             return fi;
+        }
+
+        private int callSiteCount = 0;
+        public FieldInfo EmitCallSite(Type delegateType)
+        {
+            var callSiteType = typeof(CallSite<>).MakeGenericType(delegateType);
+            var callSiteMethod = callSiteType.GetMethod("Create");
+            var nm = "callsite_" + Interlocked.Increment(ref callSiteCount);
+            var fi = _typeBuilder.DefineField(nm, callSiteType, FieldAttributes.Static | FieldAttributes.Private);
+
+            var ctor = typeof(TempBinder).GetConstructor(Array.Empty<Type>());
+            _staticConstructorIL.Newobj(ctor);
+            _staticConstructorIL.Call(callSiteMethod);
+            _staticConstructorIL.Stfld(fi);
+            return fi;
+        }
+
+        class TempBinder : CallSiteBinder
+        {
+            public override System.Linq.Expressions.Expression Bind(object[] args, ReadOnlyCollection<ParameterExpression> parameters, LabelTarget returnLabel)
+            {
+                throw new NotImplementedException();
+            }
         }
     }
 }

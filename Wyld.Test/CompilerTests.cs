@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
+using Wyld.SystemFunctions;
 using Xunit;
 
 namespace Wyld.Test
@@ -215,8 +216,27 @@ namespace Wyld.Test
                                          (add 1 2)"));
         }
 
+        [Fact]
+        public void CanSetKeywordMetadata()
+        {
+            Eval("(set-keyword-type :foo/bar int)");
+            var kw = Keyword.Intern("foo/bar");
+            Assert.Equal(typeof(int), Keyword.MetadataRegistry[kw].Type);
+        }
+
+        [Fact]
+        public void CanCreateStructs()
+        {
+            var result = Eval(@"(set-keyword-type :foo/count int)
+                    {:foo/count 42
+                     :foo/bar 33}");
+        }
+
         private object Eval(string s)
         {
+            Environment.Reset();
+            Helpers.RegisterAll();
+            
             Result<object> lastObj = default;
             var reader = new LispReader(new LineNumberingReader(new MemoryStream(Encoding.UTF8.GetBytes(s))));
             var compiler = new Compiler2();
@@ -259,8 +279,6 @@ namespace Wyld.Test
                 TOP:
                 if (lastObj.Effect != null)
                 {
-                    //if (!ReferenceEquals(lastObj.Effect.FlagValue, KW.Pause))
-                    //    throw new Exception($"Got unexpected effect {lastObj.Effect.FlagValue}");
                     results.Add(lastObj.Effect.Data);
                     var eff = lastObj.Effect;
                     lastObj = ((Func<object, object, Result<object>>)eff.K)(eff, eff.Data);
